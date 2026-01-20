@@ -58,7 +58,11 @@ class AuthMiddleware implements MiddlewareInterface
 
         $json = json_encode(['error' => $message]);
         if ($json === false) {
-            $json = '{"error":"Authorization failed"}';
+            error_log(sprintf(
+                'AuthMiddleware unauthorizedResponse json_encode failed: %s (original message: %s)',
+                json_last_error_msg(),
+                $message
+            ));
         }
 
         $response->getBody()->write($json);
