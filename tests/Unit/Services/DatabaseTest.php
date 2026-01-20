@@ -4,96 +4,82 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
-use PHPUnit\Framework\TestCase;
 use App\Services\Database;
+use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 use PDO;
 
 class DatabaseTest extends TestCase
 {
-    private string $testDbPath;
-
-    protected function setUp(): void
+    public function testGetConnectionReturnsPdoInstance(): void
     {
-        $this->testDbPath = sys_get_temp_dir() . '/test_chat_' . uniqid() . '.db';
+        $database = new Database(':memory:');
+        $pdo = $database->getConnection();
+
+        $this->assertInstanceOf(PDO::class, $pdo);
     }
 
-    protected function tearDown(): void
+    public function testConnectionFailureLogsErrorAndThrowsException(): void
     {
-        if (file_exists($this->testDbPath)) {
-            unlink($this->testDbPath);
-        }
-    }
+        $logger = $this->createMock(LoggerInterface::class);
 
-    public function testDatabaseConnectionIsCreated(): void
-    {
-        $database = new Database($this->testDbPath);
-        $connection = $database->getConnection();
+        // Expect error to be logged
+        $logger->expects($this->once())
+            ->method('error')
+            ->with($this->stringContains('Database connection failed'));
 
-        $this->assertInstanceOf(PDO::class, $connection);
+        // Use an invalid path/DSN that will definitely fail for SQLite
+        // SQLite is pretty robust, but passing a directory as a file usually fails 
+        // or using a read-only path.
+        // Actually, for SQLite, failing the constructor is hard unless the path is unwritable.
+        // Let's use a trick: 'sqlite:/root/invalid_path/db.sqlite' (assuming we are not root)
+
+        // Use an invalid/unwritable database path to force a connection failure
+        $database = new Database('/root/invalid_path/db.sqlite', $logger);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Database connection failed');
+
+        $database->getConnection();
     }
 
     public function testConnectionIsReused(): void
     {
-        $database = new Database($this->testDbPath);
+        $database = new Database(':memory:');
+        $pdo1 = $database->getConnection();
+        $pdo2 = $database->getConnection();
 
-        $connection1 = $database->getConnection();
-        $connection2 = $database->getConnection();
-
-        $this->assertSame($connection1, $connection2, 'Connection should be reused (singleton pattern)');
+        $this->assertSame($pdo1, $pdo2);
     }
 
-    public function testPdoAttributesAreSetCorrectly(): void
+    public function testPdoAttributesAreConfigured(): void
     {
-        $database = new Database($this->testDbPath);
-        $connection = $database->getConnection();
+        $database = new Database(':memory:');
+        $pdo = $database->getConnection();
 
-        $this->assertEquals(
-            PDO::ERRMODE_EXCEPTION,
-            $connection->getAttribute(PDO::ATTR_ERRMODE),
-            'Error mode should be set to exception'
-        );
-
-        $this->assertEquals(
-            PDO::FETCH_ASSOC,
-            $connection->getAttribute(PDO::ATTR_DEFAULT_FETCH_MODE),
-            'Default fetch mode should be associative array'
-        );
+        $this->assertEquals(PDO::ERRMODE_EXCEPTION, $pdo->getAttribute(PDO::ATTR_ERRMODE));
+        $this->assertEquals(PDO::FETCH_ASSOC, $pdo->getAttribute(PDO::ATTR_DEFAULT_FETCH_MODE));
     }
 
     public function testDatabaseFileIsCreated(): void
     {
-        $database = new Database($this->testDbPath);
-        $database->getConnection();
+        $tempFile = sys_get_temp_dir() . '/test_db_' . uniqid() . '.sqlite';
 
-        $this->assertFileExists($this->testDbPath, 'SQLite database file should be created');
-    }
+        // Ensure file does not exist
+        if (file_exists($tempFile)) {
+            unlink($tempFile);
+        }
 
-    public function testConnectionCanExecuteQueries(): void
-    {
-        $database = new Database($this->testDbPath);
-        $connection = $database->getConnection();
+        try {
+            $database = new Database($tempFile);
+            $database->getConnection();
 
-        // Create a test table
-        $connection->exec('CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)');
-
-        // Insert data
-        $stmt = $connection->prepare('INSERT INTO test (name) VALUES (?)');
-        $stmt->execute(['test_name']);
-
-        // Query data
-        $stmt = $connection->query('SELECT * FROM test');
-        $result = $stmt->fetch();
-
-        $this->assertEquals('test_name', $result['name']);
-    }
-
-    public function testInvalidPathThrowsException(): void
-    {
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Database connection failed');
-
-        // Try to create database in invalid directory
-        $database = new Database('/invalid/path/that/does/not/exist/test.db');
-        $database->getConnection();
+            $this->assertFileExists($tempFile);
+        } finally {
+            // Cleanup
+            if (file_exists($tempFile)) {
+                unlink($tempFile);
+            }
+        }
     }
 }

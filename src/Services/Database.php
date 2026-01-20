@@ -6,13 +6,16 @@ namespace App\Services;
 
 use PDO;
 use PDOException;
+use Psr\Log\LoggerInterface;
 
 class Database
 {
     private ?PDO $connection = null;
 
-    public function __construct(private string $dbPath)
-    {
+    public function __construct(
+        private string $dbPath,
+        private ?LoggerInterface $logger = null
+    ) {
     }
 
     public function getConnection(): PDO
@@ -29,8 +32,12 @@ class Database
                         PDO::ATTR_EMULATE_PREPARES => false,
                     ]
                 );
+
+                // Enable foreign keys for SQLite
+                $this->connection->exec('PRAGMA foreign_keys = ON;');
             } catch (PDOException $e) {
-                throw new \RuntimeException('Database connection failed: ' . $e->getMessage());
+                $this->logger?->error('Database connection failed: ' . $e->getMessage());
+                throw new \RuntimeException('Database connection failed', 0, $e);
             }
         }
 
