@@ -6,19 +6,27 @@ namespace Tests\Unit\Middleware;
 
 use PHPUnit\Framework\TestCase;
 use App\Middleware\AuthMiddleware;
+use App\Services\Database;
 use Slim\Psr7\Factory\ResponseFactory;
 use Slim\Psr7\Factory\ServerRequestFactory;
 use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use PDO;
 
 class AuthMiddlewareTest extends TestCase
 {
     private AuthMiddleware $middleware;
+    private PDO $pdo;
 
     protected function setUp(): void
     {
-        $this->middleware = new AuthMiddleware();
+        $database = new Database(':memory:');
+        $this->pdo = $database->getConnection();
+        $this->pdo->exec('CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, api_token TEXT);');
+        $this->pdo->exec("INSERT INTO users (username, api_token) VALUES ('alice', 'valid-token-123'), ('bob', 'lowercase-token')");
+
+        $this->middleware = new AuthMiddleware($database);
     }
 
     public function testMissingAuthorizationHeaderReturns401(): void
