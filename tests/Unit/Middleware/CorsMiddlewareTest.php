@@ -14,11 +14,22 @@ use Psr\Http\Message\ResponseInterface;
 class CorsMiddlewareTest extends TestCase
 {
     private CorsMiddleware $middleware;
+    private ?string $originalAllowedOrigins;
 
     protected function setUp(): void
     {
-        $this->middleware = new CorsMiddleware();
+        $this->originalAllowedOrigins = $_ENV['CORS_ALLOWED_ORIGINS'] ?? null;
         $_ENV['CORS_ALLOWED_ORIGINS'] = 'http://localhost:3000,http://localhost:8080';
+        $this->middleware = new CorsMiddleware();
+    }
+
+    protected function tearDown(): void
+    {
+        if ($this->originalAllowedOrigins !== null) {
+            $_ENV['CORS_ALLOWED_ORIGINS'] = $this->originalAllowedOrigins;
+        } else {
+            unset($_ENV['CORS_ALLOWED_ORIGINS']);
+        }
     }
 
     public function testCorsHeadersAreAddedForAllowedOrigin(): void
@@ -95,6 +106,22 @@ class CorsMiddlewareTest extends TestCase
 
         $this->assertStringContainsString('Authorization', $headers);
         $this->assertStringContainsString('Content-Type', $headers);
+    }
+
+    public function testPreflightRequestIsHandledCorrectly(): void
+    {
+        $request = (new ServerRequestFactory())
+            ->createServerRequest('OPTIONS', '/health')
+            ->withHeader('Origin', 'http://localhost:3000')
+            ->withHeader('Access-Control-Request-Method', 'POST');
+
+        $handler = $this->createMockHandler();
+        $response = $this->middleware->process($request, $handler);
+
+        $this->assertEquals('http://localhost:3000', $response->getHeaderLine('Access-Control-Allow-Origin'));
+        $this->assertNotEmpty($response->getHeaderLine('Access-Control-Allow-Methods'));
+        $this->assertNotEmpty($response->getHeaderLine('Access-Control-Allow-Headers'));
+        $this->assertEquals('true', $response->getHeaderLine('Access-Control-Allow-Credentials'));
     }
 
     private function createMockHandler(): RequestHandlerInterface
