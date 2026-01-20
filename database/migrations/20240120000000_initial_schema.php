@@ -48,6 +48,7 @@ final class InitialSchema extends AbstractMigration
             ->addForeignKey('group_id', 'groups', 'id', ['delete' => 'CASCADE', 'update' => 'NO_ACTION'])
             ->addForeignKey('user_id', 'users', 'id', ['delete' => 'NO_ACTION', 'update' => 'NO_ACTION'])
             ->addIndex(['group_id'])
+            ->addIndex(['user_id'])
             ->create();
 
         // Invitations table
