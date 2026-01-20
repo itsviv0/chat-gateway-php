@@ -34,11 +34,52 @@ class DatabaseTest extends TestCase
         // Actually, for SQLite, failing the constructor is hard unless the path is unwritable.
         // Let's use a trick: 'sqlite:/root/invalid_path/db.sqlite' (assuming we are not root)
 
+        // Use an invalid/unwritable database path to force a connection failure
         $database = new Database('/root/invalid_path/db.sqlite', $logger);
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Database connection failed');
 
         $database->getConnection();
+    }
+
+    public function testConnectionIsReused(): void
+    {
+        $database = new Database(':memory:');
+        $pdo1 = $database->getConnection();
+        $pdo2 = $database->getConnection();
+
+        $this->assertSame($pdo1, $pdo2);
+    }
+
+    public function testPdoAttributesAreConfigured(): void
+    {
+        $database = new Database(':memory:');
+        $pdo = $database->getConnection();
+
+        $this->assertEquals(PDO::ERRMODE_EXCEPTION, $pdo->getAttribute(PDO::ATTR_ERRMODE));
+        $this->assertEquals(PDO::FETCH_ASSOC, $pdo->getAttribute(PDO::ATTR_DEFAULT_FETCH_MODE));
+    }
+
+    public function testDatabaseFileIsCreated(): void
+    {
+        $tempFile = sys_get_temp_dir() . '/test_db_' . uniqid() . '.sqlite';
+
+        // Ensure file does not exist
+        if (file_exists($tempFile)) {
+            unlink($tempFile);
+        }
+
+        try {
+            $database = new Database($tempFile);
+            $database->getConnection();
+
+            $this->assertFileExists($tempFile);
+        } finally {
+            // Cleanup
+            if (file_exists($tempFile)) {
+                unlink($tempFile);
+            }
+        }
     }
 }

@@ -38,8 +38,6 @@ class DatabaseTest extends TestCase
 
         // Try to insert invalid child (non-existent parent)
         $this->expectException(PDOException::class);
-        // SQLite error code for constraint violation matches generic PDO exception logic in our service, 
-        // but PDO execution throws PDOException directly on query failure if ERRMODE is EXCEPTION.
 
         try {
             $pdo->exec("INSERT INTO children (id, parent_id) VALUES (2, 999)");

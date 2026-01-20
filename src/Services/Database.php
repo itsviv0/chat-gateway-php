@@ -37,7 +37,7 @@ class Database
                 $this->connection->exec('PRAGMA foreign_keys = ON;');
             } catch (PDOException $e) {
                 $this->logger?->error('Database connection failed: ' . $e->getMessage());
-                throw new \RuntimeException('Database connection failed');
+                throw new \RuntimeException('Database connection failed', 0, $e);
             }
         }
 
