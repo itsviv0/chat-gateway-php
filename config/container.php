@@ -12,11 +12,11 @@ return function (Container $container) {
 
     // Logger
     $container->set(LoggerInterface::class, function () {
-        $logger = new Logger($_ENV['APP_NAME']);
+        $logger = new Logger($_ENV['APP_NAME'] ?? 'chat-gateway');
         $logger->pushHandler(
             new StreamHandler(
-                __DIR__ . '/../' . $_ENV['LOG_PATH'],
-                $_ENV['LOG_LEVEL']
+                __DIR__ . '/../' . ($_ENV['LOG_PATH'] ?? 'logs/app.log'),
+                $_ENV['LOG_LEVEL'] ?? Logger::DEBUG
             )
         );
         return $logger;
@@ -24,7 +24,7 @@ return function (Container $container) {
 
     // Database
     $container->set(Database::class, function () {
-        return new Database($_ENV['DB_PATH']);
+        return new Database($_ENV['DB_PATH'] ?? 'database/chat.db');
     });
 
     return $container;
