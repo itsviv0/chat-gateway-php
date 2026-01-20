@@ -12,9 +12,13 @@ use DI\Container;
 class HealthEndpointTest extends TestCase
 {
     private $app;
+    private $originalEnv;
 
     protected function setUp(): void
     {
+        // Save original environment
+        $this->originalEnv = $_ENV;
+
         // Load environment for testing
         $_ENV['APP_DEBUG'] = 'true';
         $_ENV['APP_NAME'] = 'Chat Gateway API Test';
@@ -34,6 +38,12 @@ class HealthEndpointTest extends TestCase
         // Load routes
         $routesConfig = require __DIR__ . '/../../config/routes.php';
         $routesConfig($this->app);
+    }
+
+    protected function tearDown(): void
+    {
+        // Restore original environment
+        $_ENV = $this->originalEnv;
     }
 
     public function testHealthEndpointReturns200(): void

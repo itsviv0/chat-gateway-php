@@ -63,6 +63,7 @@ class AuthMiddleware implements MiddlewareInterface
                 json_last_error_msg(),
                 $message
             ));
+            $json = '{"error":"Authorization failed"}';
         }
 
         $response->getBody()->write($json);

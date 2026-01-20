@@ -13,9 +13,12 @@ use DI\Container;
 class MiddlewareStackTest extends TestCase
 {
     private $app;
+    private $originalEnv;
 
     protected function setUp(): void
     {
+        $this->originalEnv = $_ENV;
+
         $_ENV['APP_DEBUG'] = 'true';
         $_ENV['APP_NAME'] = 'Chat Gateway API Test';
         $_ENV['CORS_ALLOWED_ORIGINS'] = 'http://localhost:3000';
@@ -30,6 +33,11 @@ class MiddlewareStackTest extends TestCase
 
         $routesConfig = require __DIR__ . '/../../config/routes.php';
         $routesConfig($this->app);
+    }
+
+    protected function tearDown(): void
+    {
+        $_ENV = $this->originalEnv;
     }
 
     public function testJsonBodyIsParsedBeforeReachingController(): void
