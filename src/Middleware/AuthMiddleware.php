@@ -39,9 +39,13 @@ class AuthMiddleware implements MiddlewareInterface
     private function unauthorizedResponse(string $message): ResponseInterface
     {
         $response = new Response();
-        $response->getBody()->write(json_encode([
-            'error' => $message
-        ]));
+
+        $json = json_encode(['error' => $message]);
+        if ($json === false) {
+            $json = '{"error":"Authorization failed"}';
+        }
+
+        $response->getBody()->write($json);
 
         return $response
             ->withHeader('Content-Type', 'application/json')

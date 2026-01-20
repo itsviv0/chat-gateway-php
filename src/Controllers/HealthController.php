@@ -17,10 +17,15 @@ class HealthController
         $data = [
             'status' => 'healthy',
             'timestamp' => time(),
-            'service' => $_ENV['APP_NAME']
+            'service' => $_ENV['APP_NAME'] ?? 'Chat Gateway API'
         ];
 
-        $response->getBody()->write(json_encode($data));
+        $json = json_encode($data);
+        if ($json === false) {
+            $json = '{"error":"Failed to encode response"}';
+        }
+
+        $response->getBody()->write($json);
 
         return $response
             ->withHeader('Content-Type', 'application/json')

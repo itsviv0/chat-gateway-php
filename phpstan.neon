@@ -4,4 +4,3 @@ parameters:
         - src
     excludePaths:
         - vendor
-    checkMissingIterableValueType: false
