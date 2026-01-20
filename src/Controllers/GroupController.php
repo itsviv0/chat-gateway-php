@@ -23,7 +23,11 @@ class GroupController extends BaseController
         $isPrivate = filter_var($payload['is_private'] ?? false, FILTER_VALIDATE_BOOL);
 
         if ($name === '' || strlen($name) > 100) {
-            return $this->jsonResponse($response, 400, ['error' => 'Group name is required and must be at most 100 characters']);
+            return $this->jsonResponse(
+                $response,
+                400,
+                ['error' => 'Group name is required and must be at most 100 characters']
+            );
         }
 
         $user = $request->getAttribute('user');

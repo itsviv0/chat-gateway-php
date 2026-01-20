@@ -18,7 +18,9 @@ class InvitationRepository
     public function findPendingInvitation(int $groupId, string $token): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT id, expires_at FROM invitations WHERE group_id = :group_id AND token = :token AND status = :status LIMIT 1'
+            'SELECT id, expires_at 
+            FROM invitations 
+            WHERE group_id = :group_id AND token = :token AND status = :status LIMIT 1'
         );
         $stmt->execute([
             'group_id' => $groupId,
@@ -30,8 +32,14 @@ class InvitationRepository
         return $invitation !== false ? $invitation : null;
     }
 
-    public function create(int $groupId, int $inviterId, string $email, string $token, string $createdAt, string $expiresAt): void
-    {
+    public function create(
+        int $groupId,
+        int $inviterId,
+        string $email,
+        string $token,
+        string $createdAt,
+        string $expiresAt
+    ): void {
         $stmt = $this->pdo->prepare(
             'INSERT INTO invitations (group_id, inviter_id, email, token, status, created_at, expires_at) ' .
             'VALUES (:group_id, :inviter_id, :email, :token, :status, :created_at, :expires_at)'

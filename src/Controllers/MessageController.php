@@ -41,8 +41,11 @@ class MessageController extends BaseController
     /**
      * @param array<string,mixed> $args
      */
-    public function listMessages(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
-    {
+    public function listMessages(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args
+    ): ResponseInterface {
         $groupId = (int) ($args['groupId'] ?? 0);
         $user = $request->getAttribute('user');
         $userId = (int) ($user['id'] ?? 0);
