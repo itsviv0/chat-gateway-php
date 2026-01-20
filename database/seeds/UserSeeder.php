@@ -35,8 +35,12 @@ class UserSeeder extends AbstractSeed
         $usersTable->truncate();
         $usersTable->insert($users)->save();
 
-        // Get IDs (assuming 1, 2, 3 but safely fetching could be better if complex, 
-        // but for a simple seeder reliable reset is fine)
+        // Fetch user IDs
+        $rows = $this->fetchAll('SELECT id, username FROM users');
+        $userMap = [];
+        foreach ($rows as $row) {
+            $userMap[$row['username']] = $row['id'];
+        }
 
         // 2. Create Groups
         $groups = [
@@ -44,14 +48,14 @@ class UserSeeder extends AbstractSeed
                 'name' => 'General',
                 'description' => 'General discussion',
                 'is_private' => 0,
-                'created_by' => 1, // alice
+                'created_by' => $userMap['alice'],
                 'created_at' => date('Y-m-d H:i:s'),
             ],
             [
                 'name' => 'Secret Project',
                 'description' => 'Top secret stuff',
                 'is_private' => 1,
-                'created_by' => 1,
+                'created_by' => $userMap['alice'],
                 'created_at' => date('Y-m-d H:i:s'),
             ]
         ];
@@ -60,29 +64,36 @@ class UserSeeder extends AbstractSeed
         $groupsTable->truncate();
         $groupsTable->insert($groups)->save();
 
+        // Fetch group IDs
+        $rows = $this->fetchAll('SELECT id, name FROM groups');
+        $groupMap = [];
+        foreach ($rows as $row) {
+            $groupMap[$row['name']] = $row['id'];
+        }
+
         // 3. Add Members
         $members = [
             [
-                'group_id' => 1, // General
-                'user_id' => 1,  // alice
+                'group_id' => $groupMap['General'],
+                'user_id' => $userMap['alice'],
                 'role' => 'admin',
                 'joined_at' => date('Y-m-d H:i:s'),
             ],
             [
-                'group_id' => 1,
-                'user_id' => 2,  // bob
+                'group_id' => $groupMap['General'],
+                'user_id' => $userMap['bob'],
                 'role' => 'member',
                 'joined_at' => date('Y-m-d H:i:s'),
             ],
             [
-                'group_id' => 2, // Secret Project
-                'user_id' => 1,  // alice
+                'group_id' => $groupMap['Secret Project'],
+                'user_id' => $userMap['alice'],
                 'role' => 'admin',
                 'joined_at' => date('Y-m-d H:i:s'),
             ],
             [
-                'group_id' => 2,
-                'user_id' => 3,  // charlie
+                'group_id' => $groupMap['Secret Project'],
+                'user_id' => $userMap['charlie'],
                 'role' => 'member',
                 'joined_at' => date('Y-m-d H:i:s'),
             ]

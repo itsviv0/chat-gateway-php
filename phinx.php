@@ -17,7 +17,7 @@ return [
         'default_environment' => $_ENV['APP_ENV'] ?? 'development',
         'development' => [
             'adapter' => 'sqlite',
-            'name' => 'database/database', // Phinx adds .sqlite3 automatically if not present, but we control it
+            'name' => 'database/database', // Base path; actual filename is determined by the suffix below
             'suffix' => '.sqlite', // Force .sqlite extension
         ],
         'production' => [
