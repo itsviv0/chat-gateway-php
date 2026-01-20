@@ -9,8 +9,18 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
+/**
+ * Middleware to parse JSON request bodies.
+ */
 class JsonBodyParserMiddleware implements MiddlewareInterface
 {
+    /**
+     * Process an incoming server request.
+     *
+     * @param ServerRequestInterface $request
+     * @param RequestHandlerInterface $handler
+     * @return ResponseInterface
+     */
     public function process(
         ServerRequestInterface $request,
         RequestHandlerInterface $handler

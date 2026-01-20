@@ -60,6 +60,9 @@ class CorsMiddlewareTest extends TestCase
         $response = $this->middleware->process($request, $handler);
 
         $this->assertEmpty($response->getHeaderLine('Access-Control-Allow-Origin'));
+        $this->assertEmpty($response->getHeaderLine('Access-Control-Allow-Methods'));
+        $this->assertEmpty($response->getHeaderLine('Access-Control-Allow-Headers'));
+        $this->assertEmpty($response->getHeaderLine('Access-Control-Allow-Credentials'));
     }
 
     public function testAllowedMethodsIncludesCommonHttpMethods(): void

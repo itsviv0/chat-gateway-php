@@ -10,8 +10,18 @@ use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Slim\Psr7\Response;
 
+/**
+ * Middleware to handle authentication via Bearer token.
+ */
 class AuthMiddleware implements MiddlewareInterface
 {
+    /**
+     * Process an incoming server request.
+     *
+     * @param ServerRequestInterface $request
+     * @param RequestHandlerInterface $handler
+     * @return ResponseInterface
+     */
     public function process(
         ServerRequestInterface $request,
         RequestHandlerInterface $handler
@@ -36,6 +46,12 @@ class AuthMiddleware implements MiddlewareInterface
         return $handler->handle($request);
     }
 
+    /**
+     * Create an unauthorized response.
+     *
+     * @param string $message
+     * @return ResponseInterface
+     */
     private function unauthorizedResponse(string $message): ResponseInterface
     {
         $response = new Response();
