@@ -15,7 +15,7 @@ return function (App $app) {
 
     // Error middleware
     $app->addErrorMiddleware(
-        (bool) $_ENV['APP_DEBUG'],
+        (bool) ($_ENV['APP_DEBUG'] ?? false),
         true,
         true
     );
