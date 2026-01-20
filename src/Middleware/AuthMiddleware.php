@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Middleware;
 
+use App\Services\Database;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -15,6 +16,10 @@ use Slim\Psr7\Response;
  */
 class AuthMiddleware implements MiddlewareInterface
 {
+    public function __construct(private Database $database)
+    {
+    }
+
     /**
      * Process an incoming server request.
      *
@@ -39,9 +44,17 @@ class AuthMiddleware implements MiddlewareInterface
 
         $token = $matches[1];
 
-        // TODO: Validate token and get user
-        // For now, we'll add the token to request attributes
-        $request = $request->withAttribute('token', $token);
+        $pdo = $this->database->getConnection();
+        $stmt = $pdo->prepare('SELECT id, username FROM users WHERE api_token = :token LIMIT 1');
+        $stmt->execute(['token' => $token]);
+        $user = $stmt->fetch();
+
+        if ($user === false) {
+            return $this->unauthorizedResponse('Invalid or expired token');
+        }
+
+        $request = $request->withAttribute('token', $token)
+            ->withAttribute('user', $user);
 
         return $handler->handle($request);
     }

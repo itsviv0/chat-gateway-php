@@ -13,9 +13,11 @@ final class InitialSchema extends AbstractMigration
         $users->addColumn('username', 'string', ['limit' => 50])
             ->addColumn('email', 'string', ['limit' => 255])
             ->addColumn('password_hash', 'string', ['limit' => 255])
+            ->addColumn('api_token', 'string', ['limit' => 64])
             ->addColumn('created_at', 'datetime', ['default' => 'CURRENT_TIMESTAMP'])
             ->addIndex(['username'], ['unique' => true])
             ->addIndex(['email'], ['unique' => true])
+            ->addIndex(['api_token'], ['unique' => true])
             ->create();
 
         // Groups table
