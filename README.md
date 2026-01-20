@@ -39,6 +39,11 @@ A production-grade chat application backend built with PHP and Slim Framework.
    # Edit .env and configure your settings
    ```
 
+4. **Initialize Database**
+   ```bash
+   composer migrate
+   ```
+
 ### Core installations (before composer install (In Debian/Ubuntu)):
 
    ```bash
@@ -55,7 +60,7 @@ A production-grade chat application backend built with PHP and Slim Framework.
 ### Start the development server
 
 ```bash
-php -S localhost:8080 -t public
+composer start
 ```
 
 The API will be available at `http://localhost:8080`

@@ -23,8 +23,14 @@ return function (Container $container) {
     });
 
     // Database
-    $container->set(Database::class, function () {
-        return new Database($_ENV['DB_PATH'] ?? 'database/chat.db');
+    $container->set(Database::class, function (Container $c) {
+        $envPath = $_ENV['DB_PATH'] ?? 'database/database.sqlite';
+        // Resolve relative path to absolute path
+        $isAbsolute = str_starts_with($envPath, '/') || (DIRECTORY_SEPARATOR === '\\' && preg_match('/^[a-zA-Z]:/', $envPath));
+        $dbPath = $isAbsolute ? $envPath : __DIR__ . '/../' . $envPath;
+
+        $logger = $c->get(LoggerInterface::class);
+        return new Database($dbPath, $logger);
     });
 
     return $container;
