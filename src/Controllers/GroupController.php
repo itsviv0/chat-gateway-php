@@ -106,4 +106,45 @@ class GroupController extends BaseController
             return $this->jsonResponse($response, $statusCode, ['error' => $e->getMessage()]);
         }
     }
+
+    /**
+     * List all groups for the authenticated user
+     */
+    public function list(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $userUuid = $request->getAttribute('user_uuid');
+
+        if (!$userUuid) {
+            return $this->jsonResponse($response, 401, ['error' => 'Unauthorized']);
+        }
+
+        try {
+            $groups = $this->groupService->getGroupsForUser($userUuid);
+            return $this->jsonResponse($response, 200, ['data' => $groups]);
+        } catch (\Exception $e) {
+            return $this->jsonResponse($response, 500, ['error' => 'Failed to retrieve groups']);
+        }
+    }
+
+    /**
+     * Get group details including members
+     * @param array<string,mixed> $args
+     */
+    public function getDetails(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        $groupId = (string) ($args['groupId'] ?? '');
+        $userUuid = $request->getAttribute('user_uuid');
+
+        if (!$userUuid) {
+            return $this->jsonResponse($response, 401, ['error' => 'Unauthorized']);
+        }
+
+        try {
+            $result = $this->groupService->getGroupDetails($groupId);
+            return $this->jsonResponse($response, 200, $result);
+        } catch (\RuntimeException $e) {
+            $statusCode = $e->getCode() ?: 500;
+            return $this->jsonResponse($response, $statusCode, ['error' => $e->getMessage()]);
+        }
+    }
 }

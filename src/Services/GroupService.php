@@ -135,4 +135,39 @@ class GroupService
             'expires_at' => $expiresAt,
         ];
     }
+
+    /**
+     * Get all groups for a user
+     * @return array<int,array<string,mixed>>
+     */
+    public function getGroupsForUser(string $userUuid): array
+    {
+        return $this->groupRepository->findGroupsForUser($userUuid);
+    }
+
+    /**
+     * Get group details with member information
+     * @return array<string,mixed>
+     * @throws \RuntimeException
+     */
+    public function getGroupDetails(string $groupId): array
+    {
+        $group = $this->groupRepository->findById($groupId);
+        if ($group === null) {
+            throw new \RuntimeException('Group not found', 404);
+        }
+
+        $members = $this->groupRepository->getGroupMembers($groupId);
+
+        return [
+            'uuid' => $group['uuid'],
+            'name' => $group['name'],
+            'description' => $group['description'],
+            'is_private' => $group['is_private'],
+            'created_by' => $group['created_by'],
+            'created_at' => $group['created_at'],
+            'members' => $members,
+            'member_count' => count($members),
+        ];
+    }
 }
