@@ -33,8 +33,7 @@ class GroupRepository
         bool $isPrivate,
         string $createdByUuid,
         string $createdAt
-    ): string
-    {
+    ): string {
         $uuid = $this->generateUuid();
         $stmt = $this->pdo->prepare(
             'INSERT INTO groups (uuid, name, description, is_private, created_by, created_at) ' .
@@ -79,4 +78,4 @@ class GroupRepository
         bin2hex(substr($data, 8, 2)),
         bin2hex(substr($data, 10, 6)),
     ]);
-}
+    }
