@@ -9,9 +9,14 @@ use App\Controllers\AuthController;
 use App\Controllers\UserController;
 use App\Controllers\GroupController;
 use App\Controllers\MessageController;
+use App\Controllers\SwaggerController;
 use App\Middleware\AuthMiddleware;
 
 return function (App $app) {
+    // Swagger documentation
+    $app->get('/swagger', [SwaggerController::class, 'ui']);
+    $app->get('/swagger.json', [SwaggerController::class, 'spec']);
+
     // Health check endpoint
     $app->get('/health', [HealthController::class, 'check']);
 

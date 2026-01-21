@@ -9,19 +9,30 @@ use Psr\Http\Message\ServerRequestInterface;
 use Slim\Psr7\Response;
 
 /**
- * Controller to handle health check requests.
+ * @OA\Tag(
+ *     name="Health",
+ *     description="Service health check"
+ * )
  */
 class HealthController
 {
     /**
-     * Handle health check request.
-     *
-     * Returns a JSON response indicating the service health status,
-     * current timestamp, and service name.
-     *
-     * @param ServerRequestInterface $request
-     * @param ResponseInterface $response
-     * @return ResponseInterface
+     * @OA\Get(
+     *     path="/health",
+     *     operationId="healthCheck",
+     *     tags={"Health"},
+     *     summary="Health check",
+     *     description="Returns service health status",
+     *     @OA\Response(
+     *         response=200,
+     *         description="Service is healthy",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="status", type="string", example="ok"),
+     *             @OA\Property(property="timestamp", type="string", format="date-time"),
+     *             @OA\Property(property="service", type="string", example="Chat Gateway API")
+     *         )
+     *     )
+     * )
      */
     public function check(
         ServerRequestInterface $request,
