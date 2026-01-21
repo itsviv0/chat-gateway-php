@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Middleware;
 
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -11,10 +13,17 @@ use Psr\Http\Server\RequestHandlerInterface;
 use Slim\Psr7\Response;
 
 /**
- * Middleware to handle authentication via Bearer token.
+ * Middleware to handle authentication via JWT Bearer token.
  */
 class AuthMiddleware implements MiddlewareInterface
 {
+    private string $jwtSecret;
+
+    public function __construct()
+    {
+        $this->jwtSecret = $_ENV['JWT_SECRET'] ?? 'your-secret-key-change-in-production';
+    }
+
     /**
      * Process an incoming server request.
      *
@@ -39,11 +48,21 @@ class AuthMiddleware implements MiddlewareInterface
 
         $token = $matches[1];
 
-        // TODO: Validate token and get user
-        // For now, we'll add the token to request attributes
-        $request = $request->withAttribute('token', $token);
+        try {
+            $decoded = JWT::decode($token, new Key($this->jwtSecret, 'HS256'));
+            // Extract user UUID and other claims from JWT
+            $userUuid = $decoded->sub;
+            $username = $decoded->username ?? null;
 
-        return $handler->handle($request);
+            // Add user info to request attributes
+            $request = $request->withAttribute('user_uuid', $userUuid)
+                ->withAttribute('username', $username)
+                ->withAttribute('jwt_claims', $decoded);
+
+            return $handler->handle($request);
+        } catch (\Exception $e) {
+            return $this->unauthorizedResponse('Invalid or expired token: ' . $e->getMessage());
+        }
     }
 
     /**

@@ -23,17 +23,20 @@ A production-grade chat application backend built with PHP and Slim Framework.
 ## Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/itsviv0/chat-gateway-php.git
    cd chat-gateway-php
    ```
 
 2. **Install dependencies**
+
    ```bash
    composer install
    ```
 
 3. **Set up environment**
+
    ```bash
    cp .env.example .env
    # Edit .env and configure your settings
@@ -46,14 +49,14 @@ A production-grade chat application backend built with PHP and Slim Framework.
 
 ### Core installations (before composer install (In Debian/Ubuntu)):
 
-   ```bash
-   sudo apt install php8.1-cli php8.1-sqlite3 php8.1-mbstring php8.1-curl php8.1-xml
-   ```
+```bash
+sudo apt install php8.1-cli php8.1-sqlite3 php8.1-mbstring php8.1-curl php8.1-xml
+```
 
-   ```bash
-   curl -sS https://getcomposer.org/installer | php
-   sudo mv composer.phar /usr/local/bin/composer
-   ```
+```bash
+curl -sS https://getcomposer.org/installer | php
+sudo mv composer.phar /usr/local/bin/composer
+```
 
 ## Development
 
@@ -74,9 +77,28 @@ composer test
 ## API Endpoints
 
 ### Health Check
+
 - `GET /health` - Check API status
 
-> **Note:** Additional API endpoints (authentication, groups, messages) will be added in future phases after database implementation.
+### Authentication
+
+- All endpoints except `/health` require a Bearer token in `Authorization` header.
+- Tokens are stored in the `users.api_token` column. Seed data includes:
+  - alice → `token-alice-123`
+  - bob → `token-bob-456`
+  - charlie → `token-charlie-789`
+- Use HTTPS in production to protect tokens in transit.
+
+### Groups
+
+- `POST /groups` (auth) — Create public/private groups (`is_private` boolean). Creator is stored as admin.
+- `POST /groups/{groupId}/join` (auth) — Join a group. For private groups, pass `invite_token` in the JSON body.
+- `POST /groups/{groupId}/invite` (auth, admin only) — Issue invite tokens for private access.
+
+### Messages
+
+- `POST /groups/{groupId}/messages` (auth, group member) — Send a message to the group.
+- `GET /groups/{groupId}/messages?page=1&page_size=20` (auth, group member) — Paginated message listing (page_size capped at 100). Poll periodically to fetch new messages.
 
 ## Project Structure
 
@@ -106,8 +128,8 @@ chat-gateway-php/
 
 - [x] Project setup and structure
 - [x] GitHub Actions CI/CD
-- [ ] Database schema
-- [ ] Authentication implementation
+- [x] Database schema
+- [x] Authentication implementation
 - [ ] Group management
 - [ ] Messaging system
 - [ ] API documentation (OpenAPI/Swagger)
