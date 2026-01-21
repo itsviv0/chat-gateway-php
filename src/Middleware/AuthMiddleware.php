@@ -50,7 +50,6 @@ class AuthMiddleware implements MiddlewareInterface
 
         try {
             $decoded = JWT::decode($token, new Key($this->jwtSecret, 'HS256'));
-            
             // Extract user UUID and other claims from JWT
             $userUuid = $decoded->sub;
             $username = $decoded->username ?? null;
