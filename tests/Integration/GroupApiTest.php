@@ -274,37 +274,47 @@ class GroupApiTest extends TestCase
             $charlieUuid => 'charlie',
         ];
 
-        $pdo->exec("INSERT INTO users (uuid, username, email, password_hash, created_at) VALUES
-            ('$aliceUuid', 'alice', 'alice@example.com', 'hash', '{$now}'),
-            ('$bobUuid', 'bob', 'bob@example.com', 'hash', '{$now}'),
-            ('$charlieUuid', 'charlie', 'charlie@example.com', 'hash', '{$now}')
-        ");
+        // Insert test users using prepared statements
+        $userStmt = $pdo->prepare(
+            'INSERT INTO users (uuid, username, email, password_hash, created_at) VALUES (:uuid, :username, :email, :password_hash, :created_at)'
+        );
+        $userStmt->execute(['uuid' => $aliceUuid, 'username' => 'alice', 'email' => 'alice@example.com', 'password_hash' => 'hash', 'created_at' => $now]);
+        $userStmt->execute(['uuid' => $bobUuid, 'username' => 'bob', 'email' => 'bob@example.com', 'password_hash' => 'hash', 'created_at' => $now]);
+        $userStmt->execute(['uuid' => $charlieUuid, 'username' => 'charlie', 'email' => 'charlie@example.com', 'password_hash' => 'hash', 'created_at' => $now]);
 
         $generalGroupUuid = 'general-uuid-' . md5('general');
         $secretGroupUuid = 'secret-uuid-' . md5('secret');
 
-        $pdo->exec("INSERT INTO groups (uuid, name, description, is_private, created_by, created_at) VALUES
-            ('$generalGroupUuid', 'General', 'General discussion', 0, '$aliceUuid', '{$now}'),
-            ('$secretGroupUuid', 'Secret Project', 'Top secret stuff', 1, '$aliceUuid', '{$now}')
-        ");
+        // Insert test groups using prepared statements
+        $groupStmt = $pdo->prepare(
+            'INSERT INTO groups (uuid, name, description, is_private, created_by, created_at) VALUES (:uuid, :name, :description, :is_private, :created_by, :created_at)'
+        );
+        $groupStmt->execute(['uuid' => $generalGroupUuid, 'name' => 'General', 'description' => 'General discussion', 'is_private' => 0, 'created_by' => $aliceUuid, 'created_at' => $now]);
+        $groupStmt->execute(['uuid' => $secretGroupUuid, 'name' => 'Secret Project', 'description' => 'Top secret stuff', 'is_private' => 1, 'created_by' => $aliceUuid, 'created_at' => $now]);
 
-        $pdo->exec("INSERT INTO group_members (group_id, user_id, role, joined_at) VALUES
-            ('$generalGroupUuid', '$aliceUuid', 'admin', '{$now}'),
-            ('$generalGroupUuid', '$bobUuid', 'member', '{$now}'),
-            ('$secretGroupUuid', '$aliceUuid', 'admin', '{$now}')
-        ");
+        // Insert group memberships using prepared statements
+        $memberStmt = $pdo->prepare(
+            'INSERT INTO group_members (group_id, user_id, role, joined_at) VALUES (:group_id, :user_id, :role, :joined_at)'
+        );
+        $memberStmt->execute(['group_id' => $generalGroupUuid, 'user_id' => $aliceUuid, 'role' => 'admin', 'joined_at' => $now]);
+        $memberStmt->execute(['group_id' => $generalGroupUuid, 'user_id' => $bobUuid, 'role' => 'member', 'joined_at' => $now]);
+        $memberStmt->execute(['group_id' => $secretGroupUuid, 'user_id' => $aliceUuid, 'role' => 'admin', 'joined_at' => $now]);
 
+        // Insert invitations using prepared statements
         $expires = date('Y-m-d H:i:s', strtotime('+7 days'));
-        $pdo->exec("INSERT INTO invitations (group_id, inviter_id, email, token, status, created_at, expires_at) VALUES
-            ('$secretGroupUuid', '$aliceUuid', 'bob@example.com', 'invite-secret-bob', 'pending', '{$now}', '{$expires}')
-        ");
+        $inviteStmt = $pdo->prepare(
+            'INSERT INTO invitations (group_id, inviter_id, email, token, status, created_at, expires_at) VALUES (:group_id, :inviter_id, :email, :token, :status, :created_at, :expires_at)'
+        );
+        $inviteStmt->execute(['group_id' => $secretGroupUuid, 'inviter_id' => $aliceUuid, 'email' => 'bob@example.com', 'token' => 'invite-secret-bob', 'status' => 'pending', 'created_at' => $now, 'expires_at' => $expires]);
 
+        // Insert messages using prepared statements
         $msg1Uuid = 'msg1-uuid-' . md5('msg1');
         $msg2Uuid = 'msg2-uuid-' . md5('msg2');
 
-        $pdo->exec("INSERT INTO messages (uuid, group_id, user_id, content, created_at) VALUES
-            ('$msg1Uuid', '$generalGroupUuid', '$aliceUuid', 'Welcome to the General group!', '{$now}'),
-            ('$msg2Uuid', '$generalGroupUuid', '$bobUuid', 'Hi everyone!', '{$now}')
-        ");
+        $msgStmt = $pdo->prepare(
+            'INSERT INTO messages (uuid, group_id, user_id, content, created_at) VALUES (:uuid, :group_id, :user_id, :content, :created_at)'
+        );
+        $msgStmt->execute(['uuid' => $msg1Uuid, 'group_id' => $generalGroupUuid, 'user_id' => $aliceUuid, 'content' => 'Welcome to the General group!', 'created_at' => $now]);
+        $msgStmt->execute(['uuid' => $msg2Uuid, 'group_id' => $generalGroupUuid, 'user_id' => $bobUuid, 'content' => 'Hi everyone!', 'created_at' => $now]);
     }
 }
