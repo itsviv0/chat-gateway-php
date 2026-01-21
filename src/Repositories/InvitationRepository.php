@@ -15,7 +15,7 @@ class InvitationRepository
     /**
      * @return array<string,mixed>|null
      */
-    public function findPendingInvitation(int $groupId, string $token): ?array
+    public function findPendingInvitation(string $groupId, string $token): ?array
     {
         $stmt = $this->pdo->prepare(
             'SELECT id, expires_at 
@@ -33,8 +33,8 @@ class InvitationRepository
     }
 
     public function create(
-        int $groupId,
-        int $inviterId,
+        string $groupId,
+        string $inviterUuid,
         string $email,
         string $token,
         string $createdAt,
@@ -46,7 +46,7 @@ class InvitationRepository
         );
         $stmt->execute([
             'group_id' => $groupId,
-            'inviter_id' => $inviterId,
+            'inviter_id' => $inviterUuid,
             'email' => $email,
             'token' => $token,
             'status' => 'pending',

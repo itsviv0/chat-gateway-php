@@ -30,11 +30,14 @@ class GroupController extends BaseController
             );
         }
 
-        $user = $request->getAttribute('user');
-        $userId = (int) ($user['id'] ?? 0);
+        $userUuid = $request->getAttribute('user_uuid');
+
+        if (!$userUuid) {
+            return $this->jsonResponse($response, 401, ['error' => 'Unauthorized']);
+        }
 
         try {
-            $result = $this->groupService->createGroup($name, $description, $isPrivate, $userId);
+            $result = $this->groupService->createGroup($name, $description, $isPrivate, $userUuid);
             return $this->jsonResponse($response, 201, $result);
         } catch (PDOException $exception) {
             return $this->jsonResponse($response, 500, ['error' => 'Failed to create group']);
@@ -46,14 +49,17 @@ class GroupController extends BaseController
      */
     public function join(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
     {
-        $groupId = (int) ($args['groupId'] ?? 0);
-        $user = $request->getAttribute('user');
-        $userId = (int) ($user['id'] ?? 0);
+        $groupId = (string) ($args['groupId'] ?? '');
+        $userUuid = $request->getAttribute('user_uuid');
         $payload = (array) ($request->getParsedBody() ?? []);
         $inviteToken = isset($payload['invite_token']) ? trim((string) $payload['invite_token']) : null;
 
+        if (!$userUuid) {
+            return $this->jsonResponse($response, 401, ['error' => 'Unauthorized']);
+        }
+
         try {
-            $result = $this->groupService->joinGroup($groupId, $userId, $inviteToken);
+            $result = $this->groupService->joinGroup($groupId, $userUuid, $inviteToken);
             return $this->jsonResponse($response, 200, $result);
         } catch (\RuntimeException $e) {
             $statusCode = $e->getCode() ?: 500;
@@ -66,19 +72,22 @@ class GroupController extends BaseController
      */
     public function invite(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
     {
-        $groupId = (int) ($args['groupId'] ?? 0);
-        $user = $request->getAttribute('user');
-        $userId = (int) ($user['id'] ?? 0);
+        $groupId = (string) ($args['groupId'] ?? '');
+        $userUuid = $request->getAttribute('user_uuid');
         $payload = (array) ($request->getParsedBody() ?? []);
         $email = isset($payload['email']) ? trim((string) $payload['email']) : '';
         $expiresInHours = isset($payload['expires_in_hours']) ? (int) $payload['expires_in_hours'] : 168;
+
+        if (!$userUuid) {
+            return $this->jsonResponse($response, 401, ['error' => 'Unauthorized']);
+        }
 
         if ($email === '') {
             return $this->jsonResponse($response, 400, ['error' => 'Email is required to issue an invitation']);
         }
 
         try {
-            $result = $this->groupService->createInvitation($groupId, $userId, $email, $expiresInHours);
+            $result = $this->groupService->createInvitation($groupId, $userUuid, $email, $expiresInHours);
             return $this->jsonResponse($response, 201, $result);
         } catch (\RuntimeException $e) {
             $statusCode = $e->getCode() ?: 500;

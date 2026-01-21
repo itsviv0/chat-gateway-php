@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Middleware;
 
-use App\Services\Database;
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -12,12 +13,15 @@ use Psr\Http\Server\RequestHandlerInterface;
 use Slim\Psr7\Response;
 
 /**
- * Middleware to handle authentication via Bearer token.
+ * Middleware to handle authentication via JWT Bearer token.
  */
 class AuthMiddleware implements MiddlewareInterface
 {
-    public function __construct(private Database $database)
+    private string $jwtSecret;
+
+    public function __construct()
     {
+        $this->jwtSecret = $_ENV['JWT_SECRET'] ?? 'your-secret-key-change-in-production';
     }
 
     /**
@@ -44,19 +48,22 @@ class AuthMiddleware implements MiddlewareInterface
 
         $token = $matches[1];
 
-        $pdo = $this->database->getConnection();
-        $stmt = $pdo->prepare('SELECT id, username FROM users WHERE api_token = :token LIMIT 1');
-        $stmt->execute(['token' => $token]);
-        $user = $stmt->fetch();
+        try {
+            $decoded = JWT::decode($token, new Key($this->jwtSecret, 'HS256'));
+            
+            // Extract user UUID and other claims from JWT
+            $userUuid = $decoded->sub;
+            $username = $decoded->username ?? null;
 
-        if ($user === false) {
-            return $this->unauthorizedResponse('Invalid or expired token');
+            // Add user info to request attributes
+            $request = $request->withAttribute('user_uuid', $userUuid)
+                ->withAttribute('username', $username)
+                ->withAttribute('jwt_claims', $decoded);
+
+            return $handler->handle($request);
+        } catch (\Exception $e) {
+            return $this->unauthorizedResponse('Invalid or expired token: ' . $e->getMessage());
         }
-
-        $request = $request->withAttribute('token', $token)
-            ->withAttribute('user', $user);
-
-        return $handler->handle($request);
     }
 
     /**

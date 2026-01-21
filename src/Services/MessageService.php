@@ -22,23 +22,23 @@ class MessageService
      * @return array<string,mixed>
      * @throws \RuntimeException
      */
-    public function sendMessage(int $groupId, int $userId, string $content): array
+    public function sendMessage(string $groupId, string $userUuid, string $content): array
     {
         if ($this->groupRepository->findById($groupId) === null) {
             throw new \RuntimeException('Group not found', 404);
         }
 
-        if (!$this->membershipRepository->isMember($groupId, $userId)) {
+        if (!$this->membershipRepository->isMember($groupId, $userUuid)) {
             throw new \RuntimeException('You must join the group before sending messages', 403);
         }
 
         $now = (new DateTimeImmutable())->format('Y-m-d H:i:s');
-        $messageId = $this->messageRepository->create($groupId, $userId, $content, $now);
+        $messageId = $this->messageRepository->create($groupId, $userUuid, $content, $now);
 
         return [
             'id' => $messageId,
             'group_id' => $groupId,
-            'user_id' => $userId,
+            'user_uuid' => $userUuid,
             'content' => $content,
             'created_at' => $now,
         ];
@@ -48,13 +48,13 @@ class MessageService
      * @return array<string,mixed>
      * @throws \RuntimeException
      */
-    public function listMessages(int $groupId, int $userId, int $page, int $pageSize): array
+    public function listMessages(string $groupId, string $userUuid, int $page, int $pageSize): array
     {
         if ($this->groupRepository->findById($groupId) === null) {
             throw new \RuntimeException('Group not found', 404);
         }
 
-        if (!$this->membershipRepository->isMember($groupId, $userId)) {
+        if (!$this->membershipRepository->isMember($groupId, $userUuid)) {
             throw new \RuntimeException('You must join the group to view messages', 403);
         }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Integration;
 
 use App\Services\Database;
+use Firebase\JWT\JWT;
 use DI\Container;
 use PHPUnit\Framework\TestCase;
 use Slim\Factory\AppFactory;
@@ -18,6 +19,8 @@ class GroupApiTest extends TestCase
     private array $originalEnv;
     private string $dbPath;
     private PDO $pdo;
+    private string $jwtSecret = 'test-secret-key';
+    private array $testUsers = [];
 
     protected function setUp(): void
     {
@@ -28,6 +31,7 @@ class GroupApiTest extends TestCase
         $_ENV['APP_NAME'] = 'Chat Gateway API Test';
         $_ENV['CORS_ALLOWED_ORIGINS'] = '*';
         $_ENV['DB_PATH'] = $this->dbPath;
+        $_ENV['JWT_SECRET'] = $this->jwtSecret;
 
         $container = new Container();
         $containerConfig = require __DIR__ . '/../../config/container.php';
@@ -58,79 +62,109 @@ class GroupApiTest extends TestCase
         }
     }
 
+    private function generateToken(string $userUuid): string
+    {
+        $payload = [
+            'iat' => time(),
+            'exp' => time() + 3600,
+            'sub' => $userUuid,
+            'username' => $this->testUsers[$userUuid] ?? 'user',
+        ];
+        return JWT::encode($payload, $this->jwtSecret, 'HS256');
+    }
+
     public function testCreateGroup(): void
     {
+        $aliceUuid = array_key_first($this->testUsers);
         $payload = [
             'name' => 'New Group',
             'description' => 'Created during test',
             'is_private' => false,
         ];
 
-        $response = $this->jsonRequest('POST', '/groups', 'token-alice-123', $payload);
+        $response = $this->jsonRequest('POST', '/groups', $this->generateToken($aliceUuid), $payload);
 
         $this->assertEquals(201, $response->getStatusCode());
         $data = $this->decodeResponse($response);
         $this->assertEquals('New Group', $data['name']);
         $this->assertEquals(false, $data['is_private']);
-        $this->assertEquals(1, $data['created_by']);
-
-        $membershipStmt = $this->pdo->query('SELECT role FROM group_members WHERE group_id = ' . (int) $data['id'] . ' AND user_id = 1');
-        $this->assertEquals('admin', $membershipStmt->fetchColumn());
-    }
-
-    public function testJoinPublicGroup(): void
+        $this->assertEquals($aliceUuid, $data['created_by']);
+    }    public function testJoinPublicGroup(): void
     {
-        $response = $this->jsonRequest('POST', '/groups/1/join', 'token-charlie-789');
+        [$aliceUuid] = array_keys($this->testUsers);
+        $groupResult = $this->pdo->query('SELECT uuid FROM groups LIMIT 1')->fetch();
+        $groupUuid = $groupResult['uuid'];
+        
+        $charlieUuid = array_keys($this->testUsers)[2];
+        $response = $this->jsonRequest('POST', '/groups/' . $groupUuid . '/join', $this->generateToken($charlieUuid));
 
         $this->assertEquals(200, $response->getStatusCode());
         $data = $this->decodeResponse($response);
-        $this->assertEquals(3, $data['user_id']);
-        $this->assertEquals(1, $data['group_id']);
+        $this->assertEquals($groupUuid, $data['group_id']);
 
-        $membershipStmt = $this->pdo->query('SELECT role FROM group_members WHERE group_id = 1 AND user_id = 3');
+        $membershipStmt = $this->pdo->prepare('SELECT role FROM group_members WHERE group_id = ? AND user_id = ?');
+        $membershipStmt->execute([$groupUuid, $charlieUuid]);
         $this->assertEquals('member', $membershipStmt->fetchColumn());
     }
 
     public function testJoinPrivateGroupRequiresInvite(): void
     {
-        $response = $this->jsonRequest('POST', '/groups/2/join', 'token-bob-456');
+        $groupResult = $this->pdo->query('SELECT uuid FROM groups WHERE is_private = 1 LIMIT 1')->fetch();
+        $groupUuid = $groupResult['uuid'];
+        
+        $bobUuid = array_keys($this->testUsers)[1];
+        $response = $this->jsonRequest('POST', '/groups/' . $groupUuid . '/join', $this->generateToken($bobUuid));
 
         $this->assertEquals(403, $response->getStatusCode());
     }
 
     public function testJoinPrivateGroupWithInviteSucceeds(): void
     {
+        $groupResult = $this->pdo->query('SELECT uuid FROM groups WHERE is_private = 1 LIMIT 1')->fetch();
+        $groupUuid = $groupResult['uuid'];
+        
+        $bobUuid = array_keys($this->testUsers)[1];
         $payload = ['invite_token' => 'invite-secret-bob'];
-        $response = $this->jsonRequest('POST', '/groups/2/join', 'token-bob-456', $payload);
+        $response = $this->jsonRequest('POST', '/groups/' . $groupUuid . '/join', $this->generateToken($bobUuid), $payload);
 
         $this->assertEquals(200, $response->getStatusCode());
         $data = $this->decodeResponse($response);
-        $this->assertEquals(2, $data['group_id']);
+        $this->assertEquals($groupUuid, $data['group_id']);
 
-        $membershipStmt = $this->pdo->query('SELECT role FROM group_members WHERE group_id = 2 AND user_id = 2');
+        $membershipStmt = $this->pdo->prepare('SELECT role FROM group_members WHERE group_id = ? AND user_id = ?');
+        $membershipStmt->execute([$groupUuid, $bobUuid]);
         $this->assertEquals('member', $membershipStmt->fetchColumn());
     }
 
     public function testInviteRequiresAdmin(): void
     {
+        $groupResult = $this->pdo->query('SELECT uuid FROM groups LIMIT 1')->fetch();
+        $groupUuid = $groupResult['uuid'];
+        
+        $bobUuid = array_keys($this->testUsers)[1];
         $payload = ['email' => 'newuser@example.com'];
-        $response = $this->jsonRequest('POST', '/groups/1/invite', 'token-bob-456', $payload);
+        $response = $this->jsonRequest('POST', '/groups/' . $groupUuid . '/invite', $this->generateToken($bobUuid), $payload);
 
         $this->assertEquals(403, $response->getStatusCode());
     }
 
     public function testSendAndListMessagesWithPagination(): void
     {
+        $groupResult = $this->pdo->query('SELECT uuid FROM groups LIMIT 1')->fetch();
+        $groupUuid = $groupResult['uuid'];
+        
+        $charlieUuid = array_keys($this->testUsers)[2];
+
         // Charlie joins public group
-        $this->jsonRequest('POST', '/groups/1/join', 'token-charlie-789');
+        $this->jsonRequest('POST', '/groups/' . $groupUuid . '/join', $this->generateToken($charlieUuid));
 
         // Charlie sends a message
         $messagePayload = ['content' => 'Hello from Charlie'];
-        $sendResponse = $this->jsonRequest('POST', '/groups/1/messages', 'token-charlie-789', $messagePayload);
+        $sendResponse = $this->jsonRequest('POST', '/groups/' . $groupUuid . '/messages', $this->generateToken($charlieUuid), $messagePayload);
         $this->assertEquals(201, $sendResponse->getStatusCode());
 
         // Paginate messages (page size 1)
-        $listResponse = $this->jsonRequest('GET', '/groups/1/messages?page=1&page_size=1', 'token-charlie-789');
+        $listResponse = $this->jsonRequest('GET', '/groups/' . $groupUuid . '/messages?page=1&page_size=1', $this->generateToken($charlieUuid));
         $this->assertEquals(200, $listResponse->getStatusCode());
         $data = $this->decodeResponse($listResponse);
 
@@ -168,61 +202,59 @@ class GroupApiTest extends TestCase
         $pdo->exec('PRAGMA foreign_keys = ON;');
 
         $pdo->exec('CREATE TABLE users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            uuid VARCHAR(36) PRIMARY KEY,
             username VARCHAR(50) NOT NULL,
             email VARCHAR(255) NOT NULL,
             password_hash VARCHAR(255) NOT NULL,
-            api_token VARCHAR(64) NOT NULL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );');
         $pdo->exec('CREATE UNIQUE INDEX idx_users_username ON users (username);');
         $pdo->exec('CREATE UNIQUE INDEX idx_users_email ON users (email);');
-        $pdo->exec('CREATE UNIQUE INDEX idx_users_api_token ON users (api_token);');
 
         $pdo->exec('CREATE TABLE groups (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            uuid VARCHAR(36) PRIMARY KEY,
             name VARCHAR(100) NOT NULL,
             description TEXT NULL,
             is_private BOOLEAN NOT NULL DEFAULT 0,
-            created_by INTEGER NOT NULL,
+            created_by VARCHAR(36) NOT NULL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (created_by) REFERENCES users(id)
+            FOREIGN KEY (created_by) REFERENCES users(uuid)
         );');
 
         $pdo->exec('CREATE TABLE group_members (
-            group_id INTEGER NOT NULL,
-            user_id INTEGER NOT NULL,
+            group_id VARCHAR(36) NOT NULL,
+            user_id VARCHAR(36) NOT NULL,
             role VARCHAR(20) NOT NULL DEFAULT "member",
             joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (group_id, user_id),
-            FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            FOREIGN KEY (group_id) REFERENCES groups(uuid) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(uuid) ON DELETE CASCADE
         );');
         $pdo->exec('CREATE INDEX idx_group_members_user_id ON group_members (user_id);');
 
         $pdo->exec('CREATE TABLE messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            group_id INTEGER NOT NULL,
-            user_id INTEGER NOT NULL,
+            uuid VARCHAR(36) PRIMARY KEY,
+            group_id VARCHAR(36) NOT NULL,
+            user_id VARCHAR(36) NOT NULL,
             content TEXT NOT NULL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
-            FOREIGN KEY (user_id) REFERENCES users(id)
+            FOREIGN KEY (group_id) REFERENCES groups(uuid) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(uuid)
         );');
         $pdo->exec('CREATE INDEX idx_messages_group_id ON messages (group_id);');
         $pdo->exec('CREATE INDEX idx_messages_user_id ON messages (user_id);');
 
         $pdo->exec('CREATE TABLE invitations (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            group_id INTEGER NOT NULL,
-            inviter_id INTEGER NOT NULL,
+            group_id VARCHAR(36) NOT NULL,
+            inviter_id VARCHAR(36) NOT NULL,
             email VARCHAR(255) NOT NULL,
             token VARCHAR(64) NOT NULL,
             status VARCHAR(20) NOT NULL DEFAULT "pending",
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             expires_at DATETIME NOT NULL,
-            FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
-            FOREIGN KEY (inviter_id) REFERENCES users(id) ON DELETE CASCADE
+            FOREIGN KEY (group_id) REFERENCES groups(uuid) ON DELETE CASCADE,
+            FOREIGN KEY (inviter_id) REFERENCES users(uuid) ON DELETE CASCADE
         );');
         $pdo->exec('CREATE UNIQUE INDEX idx_invitations_token ON invitations (token);');
     }
@@ -231,31 +263,48 @@ class GroupApiTest extends TestCase
     {
         $now = date('Y-m-d H:i:s');
 
-        $pdo->exec("INSERT INTO users (id, username, email, password_hash, api_token, created_at) VALUES
-            (1, 'alice', 'alice@example.com', 'hash', 'token-alice-123', '{$now}'),
-            (2, 'bob', 'bob@example.com', 'hash', 'token-bob-456', '{$now}'),
-            (3, 'charlie', 'charlie@example.com', 'hash', 'token-charlie-789', '{$now}')
+        // Generate UUIDs for test users
+        $aliceUuid = 'alice-uuid-' . md5('alice');
+        $bobUuid = 'bob-uuid-' . md5('bob');
+        $charlieUuid = 'charlie-uuid-' . md5('charlie');
+
+        $this->testUsers = [
+            $aliceUuid => 'alice',
+            $bobUuid => 'bob',
+            $charlieUuid => 'charlie',
+        ];
+
+        $pdo->exec("INSERT INTO users (uuid, username, email, password_hash, created_at) VALUES
+            ('$aliceUuid', 'alice', 'alice@example.com', 'hash', '{$now}'),
+            ('$bobUuid', 'bob', 'bob@example.com', 'hash', '{$now}'),
+            ('$charlieUuid', 'charlie', 'charlie@example.com', 'hash', '{$now}')
         ");
 
-        $pdo->exec("INSERT INTO groups (id, name, description, is_private, created_by, created_at) VALUES
-            (1, 'General', 'General discussion', 0, 1, '{$now}'),
-            (2, 'Secret Project', 'Top secret stuff', 1, 1, '{$now}')
+        $generalGroupUuid = 'general-uuid-' . md5('general');
+        $secretGroupUuid = 'secret-uuid-' . md5('secret');
+
+        $pdo->exec("INSERT INTO groups (uuid, name, description, is_private, created_by, created_at) VALUES
+            ('$generalGroupUuid', 'General', 'General discussion', 0, '$aliceUuid', '{$now}'),
+            ('$secretGroupUuid', 'Secret Project', 'Top secret stuff', 1, '$aliceUuid', '{$now}')
         ");
 
         $pdo->exec("INSERT INTO group_members (group_id, user_id, role, joined_at) VALUES
-            (1, 1, 'admin', '{$now}'),
-            (1, 2, 'member', '{$now}'),
-            (2, 1, 'admin', '{$now}')
+            ('$generalGroupUuid', '$aliceUuid', 'admin', '{$now}'),
+            ('$generalGroupUuid', '$bobUuid', 'member', '{$now}'),
+            ('$secretGroupUuid', '$aliceUuid', 'admin', '{$now}')
         ");
 
         $expires = date('Y-m-d H:i:s', strtotime('+7 days'));
         $pdo->exec("INSERT INTO invitations (group_id, inviter_id, email, token, status, created_at, expires_at) VALUES
-            (2, 1, 'bob@example.com', 'invite-secret-bob', 'pending', '{$now}', '{$expires}')
+            ('$secretGroupUuid', '$aliceUuid', 'bob@example.com', 'invite-secret-bob', 'pending', '{$now}', '{$expires}')
         ");
 
-        $pdo->exec("INSERT INTO messages (group_id, user_id, content, created_at) VALUES
-            (1, 1, 'Welcome to the General group!', '{$now}'),
-            (1, 2, 'Hi everyone!', '{$now}')
+        $msg1Uuid = 'msg1-uuid-' . md5('msg1');
+        $msg2Uuid = 'msg2-uuid-' . md5('msg2');
+
+        $pdo->exec("INSERT INTO messages (uuid, group_id, user_id, content, created_at) VALUES
+            ('$msg1Uuid', '$generalGroupUuid', '$aliceUuid', 'Welcome to the General group!', '{$now}'),
+            ('$msg2Uuid', '$generalGroupUuid', '$bobUuid', 'Hi everyone!', '{$now}')
         ");
     }
 }

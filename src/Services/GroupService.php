@@ -25,15 +25,15 @@ class GroupService
      * @return array<string,mixed>
      * @throws PDOException
      */
-    public function createGroup(string $name, ?string $description, bool $isPrivate, int $userId): array
+    public function createGroup(string $name, ?string $description, bool $isPrivate, string $userUuid): array
     {
         $now = (new DateTimeImmutable())->format('Y-m-d H:i:s');
 
         $this->pdo->beginTransaction();
 
         try {
-            $groupId = $this->groupRepository->create($name, $description, $isPrivate, $userId, $now);
-            $this->membershipRepository->addMember($groupId, $userId, 'admin', $now);
+            $groupId = $this->groupRepository->create($name, $description, $isPrivate, $userUuid, $now);
+            $this->membershipRepository->addMember($groupId, $userUuid, 'admin', $now);
             $this->pdo->commit();
 
             return [
@@ -41,7 +41,7 @@ class GroupService
                 'name' => $name,
                 'description' => $description,
                 'is_private' => $isPrivate,
-                'created_by' => $userId,
+                'created_by' => $userUuid,
                 'created_at' => $now,
             ];
         } catch (PDOException $e) {
@@ -55,19 +55,19 @@ class GroupService
      * @throws \RuntimeException
      * @throws PDOException
      */
-    public function joinGroup(int $groupId, int $userId, ?string $inviteToken): array
+    public function joinGroup(string $groupId, string $userUuid, ?string $inviteToken): array
     {
         $group = $this->groupRepository->findById($groupId);
         if ($group === null) {
             throw new \RuntimeException('Group not found', 404);
         }
 
-        $existingMembership = $this->membershipRepository->findMembership($groupId, $userId);
+        $existingMembership = $this->membershipRepository->findMembership($groupId, $userUuid);
         if ($existingMembership !== null) {
             return [
                 'message' => 'Already joined',
                 'group_id' => $groupId,
-                'user_id' => $userId,
+                'user_uuid' => $userUuid,
             ];
         }
 
@@ -92,13 +92,13 @@ class GroupService
                 $this->invitationRepository->markAsAccepted((int) $invitation['id']);
             }
 
-            $this->membershipRepository->addMember($groupId, $userId, 'member', $now);
+            $this->membershipRepository->addMember($groupId, $userUuid, 'member', $now);
             $this->pdo->commit();
 
             return [
                 'message' => 'Joined group',
                 'group_id' => $groupId,
-                'user_id' => $userId,
+                'user_uuid' => $userUuid,
             ];
         } catch (\Exception $e) {
             $this->pdo->rollBack();
@@ -111,14 +111,14 @@ class GroupService
      * @throws \RuntimeException
      * @throws PDOException
      */
-    public function createInvitation(int $groupId, int $userId, string $email, int $expiresInHours): array
+    public function createInvitation(string $groupId, string $userUuid, string $email, int $expiresInHours): array
     {
         $group = $this->groupRepository->findById($groupId);
         if ($group === null) {
             throw new \RuntimeException('Group not found', 404);
         }
 
-        if (!$this->membershipRepository->isAdmin($groupId, $userId)) {
+        if (!$this->membershipRepository->isAdmin($groupId, $userUuid)) {
             throw new \RuntimeException('Only group admins can invite users', 403);
         }
 
@@ -126,7 +126,7 @@ class GroupService
         $expiresAt = (new DateTimeImmutable("+{$expiresInHours} hours"))->format('Y-m-d H:i:s');
         $token = bin2hex(random_bytes(16));
 
-        $this->invitationRepository->create($groupId, $userId, $email, $token, $now, $expiresAt);
+        $this->invitationRepository->create($groupId, $userUuid, $email, $token, $now, $expiresAt);
 
         return [
             'group_id' => $groupId,
