@@ -25,7 +25,6 @@ class AuthMiddleware implements MiddlewareInterface
     }
 
     /**
-     * ProcessThe GroupService class lacks unit test coverage. While integration tests exist in GroupApiTest, unit tests would help verify the business logic in isolation, particularly for edge cases like transaction rollback behavior and error handling. Consider adding tests/Unit/Services/GroupServiceTest.php. an incoming server request.
      *
      * @param ServerRequestInterface $request
      * @param RequestHandlerInterface $handler

@@ -130,7 +130,10 @@ class GroupController extends BaseController
      * Get group details including members
      * @param array<string,mixed> $args
      */
-    public function getDetails(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    public function getDetails(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args): ResponseInterface
     {
         $groupId = (string) ($args['groupId'] ?? '');
         $userUuid = $request->getAttribute('user_uuid');
