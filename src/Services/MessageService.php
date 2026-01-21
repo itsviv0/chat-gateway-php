@@ -58,6 +58,7 @@ class MessageService
             throw new \RuntimeException('You must join the group to view messages', 403);
         }
 
+        $page = max(1, $page);
         $pageSize = max(1, min($pageSize, 100));
         $offset = ($page - 1) * $pageSize;
 
