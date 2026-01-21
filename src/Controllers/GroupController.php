@@ -133,8 +133,8 @@ class GroupController extends BaseController
     public function getDetails(
         ServerRequestInterface $request,
         ResponseInterface $response,
-        array $args): ResponseInterface
-    {
+        array $args
+    ): ResponseInterface {
         $groupId = (string) ($args['groupId'] ?? '');
         $userUuid = $request->getAttribute('user_uuid');
 
