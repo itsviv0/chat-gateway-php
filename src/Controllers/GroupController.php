@@ -122,22 +122,6 @@ class GroupController extends BaseController
             return $this->jsonResponse($response, 401, ['error' => 'Unauthorized']);
         }
 
-        if ($email === '') {
-            return $this->jsonResponse($response, 400, ['error' => 'Email is required to issue an invitation']);
-        }
-
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return $this->jsonResponse($response, 400, ['error' => 'Invalid email address format']);
-        }
-
-        if ($expiresInHours < 1 || $expiresInHours > 720) {
-            return $this->jsonResponse(
-                $response,
-                400,
-                ['error' => 'Expiration time must be between 1 and 720 hours (30 days)']
-            );
-        }
-
         try {
             $result = $this->groupService->createInvitation($groupId, $userUuid, $email, $expiresInHours);
             return $this->jsonResponse($response, 201, $result);

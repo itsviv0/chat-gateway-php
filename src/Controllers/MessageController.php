@@ -28,18 +28,6 @@ class MessageController extends BaseController
             return $this->jsonResponse($response, 401, ['error' => 'Unauthorized']);
         }
 
-        if ($content === '') {
-            return $this->jsonResponse($response, 400, ['error' => 'Message content is required']);
-        }
-
-        if (strlen($content) > 5000) {
-            return $this->jsonResponse(
-                $response,
-                400,
-                ['error' => 'Message content must not exceed 5000 characters']
-            );
-        }
-
         try {
             $result = $this->messageService->sendMessage($groupId, $userUuid, $content);
             return $this->jsonResponse($response, 201, $result);

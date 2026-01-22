@@ -24,6 +24,14 @@ class MessageService
      */
     public function sendMessage(string $groupId, string $userUuid, string $content): array
     {
+        if ($content === '') {
+            throw new \RuntimeException('Message content is required', 400);
+        }
+
+        if (strlen($content) > 5000) {
+            throw new \RuntimeException('Message content must not exceed 5000 characters', 400);
+        }
+
         if ($this->groupRepository->findById($groupId) === null) {
             throw new \RuntimeException('Group not found', 404);
         }

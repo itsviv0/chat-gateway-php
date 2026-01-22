@@ -76,6 +76,11 @@ class MessageControllerTest extends TestCase
 
         $response = $this->responseFactory->createResponse();
 
+        $this->messageService->expects($this->once())
+            ->method('sendMessage')
+            ->with('group-123', 'user-123', '')
+            ->willThrowException(new \RuntimeException('Message content is required', 400));
+
         $result = $this->controller->send($request, $response, ['groupId' => 'group-123']);
 
         $this->assertEquals(400, $result->getStatusCode());
@@ -91,6 +96,11 @@ class MessageControllerTest extends TestCase
             ->withAttribute('user_uuid', 'user-123');
 
         $response = $this->responseFactory->createResponse();
+
+        $this->messageService->expects($this->once())
+            ->method('sendMessage')
+            ->with('group-123', 'user-123', '')
+            ->willThrowException(new \RuntimeException('Message content is required', 400));
 
         $result = $this->controller->send($request, $response, ['groupId' => 'group-123']);
 
@@ -108,6 +118,11 @@ class MessageControllerTest extends TestCase
             ->withAttribute('user_uuid', 'user-123');
 
         $response = $this->responseFactory->createResponse();
+
+        $this->messageService->expects($this->once())
+            ->method('sendMessage')
+            ->with('group-123', 'user-123', $longContent)
+            ->willThrowException(new \RuntimeException('Message content must not exceed 5000 characters', 400));
 
         $result = $this->controller->send($request, $response, ['groupId' => 'group-123']);
 
@@ -144,6 +159,11 @@ class MessageControllerTest extends TestCase
 
         $response = $this->responseFactory->createResponse();
 
+        $this->messageService->expects($this->once())
+            ->method('sendMessage')
+            ->with('group-123', 'user-123', '')
+            ->willThrowException(new \RuntimeException('Message content is required', 400));
+
         $result = $this->controller->send($request, $response, ['groupId' => 'group-123']);
 
         $this->assertEquals(400, $result->getStatusCode());
@@ -176,6 +196,11 @@ class MessageControllerTest extends TestCase
             ->withAttribute('user_uuid', 'user-123');
 
         $response = $this->responseFactory->createResponse();
+
+        $this->messageService->expects($this->once())
+            ->method('sendMessage')
+            ->with('group-123', 'user-123', '')
+            ->willThrowException(new \RuntimeException('Message content is required', 400));
 
         $result = $this->controller->send($request, $response, ['groupId' => 'group-123']);
 

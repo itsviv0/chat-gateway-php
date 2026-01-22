@@ -113,6 +113,18 @@ class GroupService
      */
     public function createInvitation(string $groupId, string $userUuid, string $email, int $expiresInHours): array
     {
+        if ($email === '') {
+            throw new \RuntimeException('Email is required to issue an invitation', 400);
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new \RuntimeException('Invalid email address format', 400);
+        }
+
+        if ($expiresInHours < 1 || $expiresInHours > 720) {
+            throw new \RuntimeException('Expiration time must be between 1 and 720 hours (30 days)', 400);
+        }
+
         $group = $this->groupRepository->findById($groupId);
         if ($group === null) {
             throw new \RuntimeException('Group not found', 404);

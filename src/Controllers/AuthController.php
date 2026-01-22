@@ -18,8 +18,7 @@ use Psr\Http\Message\ServerRequestInterface;
 class AuthController extends BaseController
 {
     public function __construct(
-        private AuthService $authService,
-        private UserRepository $userRepository
+        private AuthService $authService
     ) {
     }
 
@@ -82,28 +81,12 @@ class AuthController extends BaseController
         $email = isset($payload['email']) ? trim((string) $payload['email']) : '';
         $password = isset($payload['password']) ? (string) $payload['password'] : '';
 
-        if ($email === '' || $password === '') {
-            return $this->jsonResponse($response, 400, ['error' => 'Email and password are required']);
+        try {
+            $result = $this->authService->login($email, $password);
+            return $this->jsonResponse($response, 200, $result);
+        } catch (\RuntimeException $e) {
+            $statusCode = $e->getCode() ?: 500;
+            return $this->jsonResponse($response, $statusCode, ['error' => $e->getMessage()]);
         }
-
-        $user = $this->userRepository->findByEmail($email);
-        if ($user === null) {
-            return $this->jsonResponse($response, 401, ['error' => 'Invalid email or password']);
-        }
-
-        if (!password_verify($password, $user['password_hash'])) {
-            return $this->jsonResponse($response, 401, ['error' => 'Invalid email or password']);
-        }
-
-        $token = $this->authService->generateToken($user['uuid'], $user['username']);
-
-        return $this->jsonResponse($response, 200, [
-            'token' => $token,
-            'user' => [
-                'uuid' => $user['uuid'],
-                'username' => $user['username'],
-                'email' => $user['email'],
-            ],
-        ]);
     }
 }
