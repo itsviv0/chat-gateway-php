@@ -42,8 +42,12 @@ class ErrorHandlerMiddleware implements MiddlewareInterface
     /**
      * @param array<string,mixed> $details
      */
-    private function createJsonErrorResponse(int $statusCode, string $error, string $message, array $details = []): ResponseInterface
-    {
+    private function createJsonErrorResponse(
+        int $statusCode,
+        string $error,
+        string $message,
+        array $details = []
+    ): ResponseInterface {
         $response = new Response();
         $response = $response->withStatus($statusCode);
         $response = $response->withHeader('Content-Type', 'application/json');
