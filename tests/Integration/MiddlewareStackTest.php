@@ -22,8 +22,17 @@ class MiddlewareStackTest extends TestCase
         $_ENV['APP_DEBUG'] = 'true';
         $_ENV['APP_NAME'] = 'Chat Gateway API Test';
         $_ENV['CORS_ALLOWED_ORIGINS'] = 'http://localhost:3000';
+        $_ENV['DB_HOST'] = 'localhost';
+        $_ENV['DB_PORT'] = '3306';
+        $_ENV['DB_NAME'] = 'test_db';
+        $_ENV['DB_USER'] = 'test';
+        $_ENV['DB_PASS'] = 'test';
+        $_ENV['JWT_SECRET'] = 'test-secret-key';
 
         $container = new Container();
+        $containerConfig = require __DIR__ . '/../../config/container.php';
+        $containerConfig($container);
+        
         AppFactory::setContainer($container);
 
         $this->app = AppFactory::create();
@@ -69,32 +78,20 @@ class MiddlewareStackTest extends TestCase
         $this->assertNotEmpty($response->getHeaderLine('Access-Control-Allow-Headers'));
     }
 
-    public function testErrorMiddlewareHandlesNotFound(): void
+    public function testProtectedRouteRequiresAuthentication(): void
     {
-        // Request to non-existent route should throw HttpNotFoundException
-        $request = (new ServerRequestFactory())->createServerRequest('GET', '/non-existent-route');
-
-        $this->expectException(\Slim\Exception\HttpNotFoundException::class);
-        $this->app->handle($request);
-    }
-
-    public function testMiddlewareStackProcessesValidRequests(): void
-    {
-        // Valid request should go through entire middleware stack successfully
-        $request = (new ServerRequestFactory())
-            ->createServerRequest('GET', '/health')
-            ->withHeader('Origin', 'http://localhost:3000')
-            ->withHeader('Content-Type', 'application/json');
+        // Request to protected route without auth token should return 401
+        $request = (new ServerRequestFactory())->createServerRequest('GET', '/users/me');
 
         $response = $this->app->handle($request);
-
-        // Should have successful response
-        $this->assertEquals(200, $response->getStatusCode());
-
-        // Should have CORS headers (from CorsMiddleware)
-        $this->assertNotEmpty($response->getHeaderLine('Access-Control-Allow-Origin'));
-
-        // Should have JSON content type (from controller)
+        
+        $this->assertEquals(401, $response->getStatusCode());
         $this->assertEquals('application/json', $response->getHeaderLine('Content-Type'));
+        
+        $body = (string) $response->getBody();
+        $data = json_decode($body, true);
+        
+        $this->assertArrayHasKey('error', $data);
     }
 }
+

@@ -77,7 +77,7 @@ return function (Container $container) {
 
     // Services
     $container->set(AuthService::class, function (Container $c) {
-        return new AuthService();
+        return new AuthService($c->get(UserRepository::class));
     });
 
     $container->set(GroupService::class, function (Container $c) {
