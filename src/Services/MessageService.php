@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Repositories\GroupRepository;
 use App\Repositories\MembershipRepository;
 use App\Repositories\MessageRepository;
+use App\Utils\Validator;
 use DateTimeImmutable;
 
 class MessageService
@@ -24,13 +25,14 @@ class MessageService
      */
     public function sendMessage(string $groupId, string $userUuid, string $content): array
     {
-        if ($content === '') {
-            throw new \RuntimeException('Message content is required', 400);
+        // Validate and sanitize input
+        $validation = Validator::validateMessage(['content' => $content]);
+
+        if (!$validation['valid']) {
+            throw new \RuntimeException(Validator::formatErrors($validation['errors']), 400);
         }
 
-        if (strlen($content) > 5000) {
-            throw new \RuntimeException('Message content must not exceed 5000 characters', 400);
-        }
+        $sanitizedContent = $validation['sanitized']['content'];
 
         if ($this->groupRepository->findById($groupId) === null) {
             throw new \RuntimeException('Group not found', 404);
@@ -41,13 +43,13 @@ class MessageService
         }
 
         $now = (new DateTimeImmutable())->format('Y-m-d H:i:s');
-        $messageId = $this->messageRepository->create($groupId, $userUuid, $content, $now);
+        $messageId = $this->messageRepository->create($groupId, $userUuid, $sanitizedContent, $now);
 
         return [
             'id' => $messageId,
             'group_id' => $groupId,
             'user_uuid' => $userUuid,
-            'content' => $content,
+            'content' => $sanitizedContent,
             'created_at' => $now,
         ];
     }

@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Repositories\GroupRepository;
 use App\Repositories\MembershipRepository;
 use App\Repositories\InvitationRepository;
+use App\Utils\Validator;
 use DateTimeImmutable;
 use PDO;
 use PDOException;
@@ -27,20 +28,35 @@ class GroupService
      */
     public function createGroup(string $name, ?string $description, bool $isPrivate, string $userUuid): array
     {
+        // Validate and sanitize input
+        $validation = Validator::validateGroupCreation([
+            'name' => $name,
+            'description' => $description,
+            'is_private' => $isPrivate,
+        ]);
+
+        if (!$validation['valid']) {
+            throw new \RuntimeException(Validator::formatErrors($validation['errors']), 400);
+        }
+
+        $sanitizedName = $validation['sanitized']['name'];
+        $sanitizedDescription = $validation['sanitized']['description'];
+        $sanitizedIsPrivate = $validation['sanitized']['is_private'];
+
         $now = (new DateTimeImmutable())->format('Y-m-d H:i:s');
 
         $this->pdo->beginTransaction();
 
         try {
-            $groupId = $this->groupRepository->create($name, $description, $isPrivate, $userUuid, $now);
+            $groupId = $this->groupRepository->create($sanitizedName, $sanitizedDescription, $sanitizedIsPrivate, $userUuid, $now);
             $this->membershipRepository->addMember($groupId, $userUuid, 'admin', $now);
             $this->pdo->commit();
 
             return [
                 'id' => $groupId,
-                'name' => $name,
-                'description' => $description,
-                'is_private' => $isPrivate,
+                'name' => $sanitizedName,
+                'description' => $sanitizedDescription,
+                'is_private' => $sanitizedIsPrivate,
                 'created_by' => $userUuid,
                 'created_at' => $now,
             ];
@@ -113,17 +129,18 @@ class GroupService
      */
     public function createInvitation(string $groupId, string $userUuid, string $email, int $expiresInHours): array
     {
-        if ($email === '') {
-            throw new \RuntimeException('Email is required to issue an invitation', 400);
+        // Validate and sanitize input
+        $validation = Validator::validateInvitation([
+            'email' => $email,
+            'expires_in_hours' => $expiresInHours,
+        ]);
+
+        if (!$validation['valid']) {
+            throw new \RuntimeException(Validator::formatErrors($validation['errors']), 400);
         }
 
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new \RuntimeException('Invalid email address format', 400);
-        }
-
-        if ($expiresInHours < 1 || $expiresInHours > 720) {
-            throw new \RuntimeException('Expiration time must be between 1 and 720 hours (30 days)', 400);
-        }
+        $sanitizedEmail = $validation['sanitized']['email'];
+        $sanitizedExpiresInHours = $validation['sanitized']['expires_in_hours'];
 
         $group = $this->groupRepository->findById($groupId);
         if ($group === null) {
@@ -135,15 +152,15 @@ class GroupService
         }
 
         $now = (new DateTimeImmutable())->format('Y-m-d H:i:s');
-        $expiresAt = (new DateTimeImmutable("+{$expiresInHours} hours"))->format('Y-m-d H:i:s');
+        $expiresAt = (new DateTimeImmutable("+{$sanitizedExpiresInHours} hours"))->format('Y-m-d H:i:s');
         $token = bin2hex(random_bytes(16));
 
-        $this->invitationRepository->create($groupId, $userUuid, $email, $token, $now, $expiresAt);
+        $this->invitationRepository->create($groupId, $userUuid, $sanitizedEmail, $token, $now, $expiresAt);
 
         return [
             'group_id' => $groupId,
             'token' => $token,
-            'email' => $email,
+            'email' => $sanitizedEmail,
             'expires_at' => $expiresAt,
         ];
     }

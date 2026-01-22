@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Repositories\UserRepository;
+use App\Utils\Validator;
 use Firebase\JWT\JWT;
 
 class AuthService
@@ -28,16 +29,25 @@ class AuthService
      */
     public function login(string $email, string $password): array
     {
-        if ($email === '' || $password === '') {
-            throw new \RuntimeException('Email and password are required', 400);
+        // Validate and sanitize input
+        $validation = Validator::validateLogin([
+            'email' => $email,
+            'password' => $password,
+        ]);
+
+        if (!$validation['valid']) {
+            throw new \RuntimeException(Validator::formatErrors($validation['errors']), 400);
         }
 
-        $user = $this->userRepository->findByEmail($email);
+        $sanitizedEmail = $validation['sanitized']['email'];
+        $sanitizedPassword = $validation['sanitized']['password'];
+
+        $user = $this->userRepository->findByEmail($sanitizedEmail);
         if ($user === null) {
             throw new \RuntimeException('Invalid email or password', 401);
         }
 
-        if (!password_verify($password, $user['password_hash'])) {
+        if (!password_verify($sanitizedPassword, $user['password_hash'])) {
             throw new \RuntimeException('Invalid email or password', 401);
         }
 
