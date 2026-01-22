@@ -1,7 +1,4 @@
 <?php
-
-declare(strict_types=1);
-
 /**
  * @OA\OpenApi(
  *     info=@OA\Info(
@@ -43,6 +40,8 @@ declare(strict_types=1);
  *     securityScheme="bearerAuth"
  * )
  */
+
+declare(strict_types=1);
 
 namespace App\OpenAPI;
 
