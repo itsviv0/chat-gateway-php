@@ -48,7 +48,13 @@ class GroupService
         $this->pdo->beginTransaction();
 
         try {
-            $groupId = $this->groupRepository->create($sanitizedName, $sanitizedDescription, $sanitizedIsPrivate, $userUuid, $now);
+            $groupId = $this->groupRepository->create(
+                $sanitizedName,
+                $sanitizedDescription,
+                $sanitizedIsPrivate,
+                $userUuid,
+                $now
+            );
             $this->membershipRepository->addMember($groupId, $userUuid, 'admin', $now);
             $this->pdo->commit();
 

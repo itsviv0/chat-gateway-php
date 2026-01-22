@@ -8,7 +8,7 @@ composer.lock
 .env.*.local
 
 # Database
-/database/*.db
+*.db
 /database/*.sqlite
 !/database/.gitkeep
 
