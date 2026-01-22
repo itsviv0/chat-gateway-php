@@ -40,7 +40,7 @@ class SwaggerController
     <title>Chat Gateway API - Swagger UI</title>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@3/swagger-ui.css">
+    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css">
     <style>
       html{
         box-sizing: border-box;
@@ -60,25 +60,28 @@ class SwaggerController
   </head>
   <body>
     <div id="swagger-ui"></div>
-    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@3/swagger-ui.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-standalone-preset.js"></script>
     <script>
-      const ui = SwaggerUIBundle({
-        url: "/api/swagger.json",
-        dom_id: '#swagger-ui',
-        presets: [
-          SwaggerUIBundle.presets.apis,
-          SwaggerUIBundle.SwaggerUIStandalonePreset
-        ],
-        layout: "BaseLayout",
-        deepLinking: true,
-        onComplete: function() {
-          console.log("Swagger UI loaded")
-        },
-        onFailure: function(data) {
-          console.error("Unable to load swagger spec", data)
-        }
-      })
-      window.ui = ui
+      window.onload = function() {
+        const ui = SwaggerUIBundle({
+          url: "/swagger.json",
+          dom_id: '#swagger-ui',
+          presets: [
+            SwaggerUIBundle.presets.apis,
+            SwaggerUIStandalonePreset
+          ],
+          layout: "StandaloneLayout",
+          deepLinking: true,
+          onComplete: function() {
+            console.log("Swagger UI loaded successfully")
+          },
+          onFailure: function(data) {
+            console.error("Unable to load swagger spec", data)
+          }
+        })
+        window.ui = ui
+      }
     </script>
   </body>
 </html>
