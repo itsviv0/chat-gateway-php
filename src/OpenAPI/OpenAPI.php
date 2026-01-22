@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @OA\OpenApi(
  *     info=@OA\Info(
