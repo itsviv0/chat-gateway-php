@@ -1,20 +1,32 @@
 # Quick Start: Using Swagger UI
 
-## 🚀 Get Started in 3 Steps
+## 🚀 Get Started in 4 Steps
 
-### Step 1: Start the Server
+### Step 1: Setup Database
+
+```bash
+# Run migrations to create tables
+vendor/bin/phinx migrate
+
+# Seed test data (5 users, 6 groups, 25 messages)
+vendor/bin/phinx seed:run
+```
+
+### Step 2: Start the Server
 
 ```bash
 composer start
+# OR manually:
+php -S localhost:8080 -t public public/router.php
 ```
 
 Server runs at: `http://localhost:8080`
 
-### Step 2: Open Swagger UI
+### Step 3: Open Swagger UI
 
 Visit: `http://localhost:8080/swagger`
 
-### Step 3: Test the API
+### Step 4: Test the API
 
 #### Example: Login
 
@@ -23,12 +35,22 @@ Visit: `http://localhost:8080/swagger`
 3. Enter credentials:
    ```json
    {
-     "email": "john@example.com",
-     "password": "password"
+     "email": "alice@example.com",
+     "password": "password123"
    }
    ```
 4. Click "Execute"
 5. Copy the `token` from response
+
+#### Available Test Users
+
+All users have password: `password123`
+
+- alice@example.com
+- bob@example.com
+- charlie@example.com
+- david@example.com
+- emma@example.com
 
 ---
 
@@ -58,21 +80,12 @@ Visit: `http://localhost:8080/swagger`
 
 ## 🐛 Troubleshooting
 
-| Issue                     | Solution                                                        |
-| ------------------------- | --------------------------------------------------------------- |
-| Swagger UI not loading    | Ensure server is running on port 8080                           |
-| "Cannot read spec"        | Check browser console, verify `/api/swagger.json` is accessible |
-| Authorization not working | Verify token format: `Bearer <token>` (with space)              |
-| Token expired             | Get a new token from `/auth/login`                              |
-
----
-
-## 💡 Pro Tips
-
-1. **Export Requests**: Right-click request to copy as cURL
-2. **Share API**: Send Swagger URL to teammates
-3. **Import to Postman**: Use `/api/swagger.json` URL
-4. **Generate Code**: Use OpenAPI generators for your language
+| Issue                  | Solution                                                          |
+| ---------------------- | ----------------------------------------------------------------- |
+| Swagger UI not loading | Start server: `php -S localhost:8080 -t public public/router.php` |
+| "Cannot read spec"     | Check browser console, verify `/api/swagger.json` is accessible   |
+| No data present        | Run: `vendor/bin/phinx migrate && vendor/bin/phinx seed:run`      |
+| Token expired          | Get a new token from `/auth/login`                                |
 
 ---
 
