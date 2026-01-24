@@ -15,6 +15,7 @@ use App\Middleware\AuthMiddleware;
 return function (App $app) {
     // Swagger documentation
     $app->get('/swagger', [SwaggerController::class, 'ui']);
+    $app->get('/swagger/', [SwaggerController::class, 'ui']);
     $app->get('/swagger.json', [SwaggerController::class, 'spec']);
 
     // Health check endpoint
