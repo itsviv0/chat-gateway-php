@@ -25,7 +25,6 @@ class AuthMiddleware implements MiddlewareInterface
     }
 
     /**
-     * Process an incoming server request.
      *
      * @param ServerRequestInterface $request
      * @param RequestHandlerInterface $handler

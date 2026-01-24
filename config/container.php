@@ -6,8 +6,10 @@ use DI\Container;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 use App\Services\Database;
+use App\Services\AuthService;
 use App\Services\GroupService;
 use App\Services\MessageService;
+use App\Repositories\UserRepository;
 use App\Repositories\GroupRepository;
 use App\Repositories\MembershipRepository;
 use App\Repositories\InvitationRepository;
@@ -53,6 +55,10 @@ return function (Container $container) {
     });
 
     // Repositories
+    $container->set(UserRepository::class, function (Container $c) {
+        return new UserRepository($c->get(PDO::class));
+    });
+
     $container->set(GroupRepository::class, function (Container $c) {
         return new GroupRepository($c->get(PDO::class));
     });
@@ -70,6 +76,10 @@ return function (Container $container) {
     });
 
     // Services
+    $container->set(AuthService::class, function (Container $c) {
+        return new AuthService($c->get(UserRepository::class));
+    });
+
     $container->set(GroupService::class, function (Container $c) {
         return new GroupService(
             $c->get(PDO::class),
@@ -88,7 +98,7 @@ return function (Container $container) {
     });
 
     $container->set(AuthMiddleware::class, function (Container $c) {
-        return new AuthMiddleware($c->get(Database::class));
+        return new AuthMiddleware();
     });
 
     return $container;

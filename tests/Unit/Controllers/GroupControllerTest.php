@@ -379,6 +379,11 @@ class GroupControllerTest extends TestCase
 
         $response = $this->responseFactory->createResponse();
 
+        $this->groupService->expects($this->once())
+            ->method('createInvitation')
+            ->with('group-123', 'user-789', '', 168)
+            ->willThrowException(new \RuntimeException('Email is required to issue an invitation', 400));
+
         $result = $this->controller->invite($request, $response, ['groupId' => 'group-123']);
 
         $this->assertEquals(400, $result->getStatusCode());
@@ -395,6 +400,11 @@ class GroupControllerTest extends TestCase
             ->withAttribute('user_uuid', 'user-789');
 
         $response = $this->responseFactory->createResponse();
+
+        $this->groupService->expects($this->once())
+            ->method('createInvitation')
+            ->with('group-123', 'user-789', '', 168)
+            ->willThrowException(new \RuntimeException('Email is required to issue an invitation', 400));
 
         $result = $this->controller->invite($request, $response, ['groupId' => 'group-123']);
 
