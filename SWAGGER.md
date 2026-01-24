@@ -15,7 +15,7 @@ http://localhost:8080/swagger
 ### API Specification (JSON)
 
 ```
-http://localhost:8080/api/swagger.json
+http://localhost:8080/swagger.json
 ```
 
 ## Features
@@ -52,12 +52,22 @@ http://localhost:8080/api/swagger.json
 5. Enter your credentials:
    ```json
    {
-     "email": "user@example.com",
-     "password": "password"
+     "email": "alice@example.com",
+     "password": "password123"
    }
    ```
 6. Click "Execute"
 7. Copy the `token` from the response
+
+#### Available Test Users
+
+All users have password: `password123`
+
+- alice@example.com
+- bob@example.com
+- charlie@example.com
+- david@example.com
+- emma@example.com
 
 ### 2. Authorize for Protected Endpoints
 
@@ -101,18 +111,21 @@ http://localhost:8080/api/swagger.json
 - **GET /groups/{groupId}** - Get group details with members
 - **POST /groups/{groupId}/join** - Join a group
 - **POST /groups/{groupId}/invite** - Invite user to group
-- **GET /groups/{groupId}/messages** - Get group messages
-- **POST /groups/{groupId}/messages** - Send message to group
+
+### Messages
+
+- **POST /groups/{groupId}/messages** - Send message to group (requires membership)
+- **GET /groups/{groupId}/messages** - List group messages with pagination
 
 ## Request/Response Examples
 
 ### Example: Login
 
 ```bash
-curl -X POST http://localhost:8080/api/auth/login \
+curl -X POST http://localhost:8080/auth/login \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "john@example.com",
+    "email": "alice@example.com",
     "password": "password123"
   }'
 ```
@@ -124,8 +137,8 @@ Response:
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "user": {
     "uuid": "550e8400-e29b-41d4-a716-446655440000",
-    "username": "john_doe",
-    "email": "john@example.com"
+    "username": "alice",
+    "email": "alice@example.com"
   }
 }
 ```
@@ -133,7 +146,7 @@ Response:
 ### Example: Get User Profile
 
 ```bash
-curl -X GET http://localhost:8080/api/users/me \
+curl -X GET http://localhost:8080/users/me \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
@@ -142,8 +155,8 @@ Response:
 ```json
 {
   "uuid": "550e8400-e29b-41d4-a716-446655440000",
-  "username": "john_doe",
-  "email": "john@example.com",
+  "username": "alice",
+  "email": "alice@example.com",
   "created_at": "2024-01-15T10:30:00"
 }
 ```
@@ -174,25 +187,7 @@ To log out or switch users, click the "Authorize" button again and click "Logout
 
 Click "Response headers" to see HTTP headers and status codes.
 
-### 4. Download OpenAPI Spec
-
-The OpenAPI specification can be downloaded and imported into other tools:
-
-- Postman
-- Insomnia
-- API documentation generators
-- Code generation tools
-
-### 5. Generate Client Code
-
-Use the OpenAPI spec to generate API client code in multiple languages:
-
-- JavaScript/TypeScript
-- Python
-- Java
-- Go
-- Ruby
-- PHP
+---
 
 ## Generating API Clients
 
@@ -201,13 +196,13 @@ Use the OpenAPI spec to generate API client code in multiple languages:
 ```bash
 # Generate TypeScript client
 npx openapi-generator-cli generate \
-  -i http://localhost:8080/api/swagger.json \
+  -i http://localhost:8080/swagger.json \
   -g typescript \
   -o ./api-client
 
 # Generate Python client
 openapi-generator-cli generate \
-  -i http://localhost:8080/api/swagger.json \
+  -i http://localhost:8080/swagger.json \
   -g python \
   -o ./api-client
 ```
@@ -216,13 +211,13 @@ openapi-generator-cli generate \
 
 ### Swagger UI not loading
 
-- Ensure the server is running: `php -S localhost:8080 -t public`
+- Ensure the server is running: `php -S localhost:8080 -t public public/router.php`
 - Check browser console for errors
 - Try clearing browser cache
 
 ### "Cannot read spec from URL"
 
-- Verify the API spec endpoint is accessible: `http://localhost:8080/api/swagger.json`
+- Verify the API spec endpoint is accessible: `http://localhost:8080/swagger.json`
 - Check network requests in browser DevTools
 - Ensure JSON is valid
 

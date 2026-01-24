@@ -43,8 +43,13 @@ A production-grade chat application backend built with PHP and Slim Framework.
    ```
 
 4. **Initialize Database**
+
    ```bash
-   composer migrate
+   # Run migrations
+   vendor/bin/phinx migrate
+
+   # Seed test data (5 users, 6 groups, 25 messages)
+   vendor/bin/phinx seed:run
    ```
 
 ### Core installations (before composer install (In Debian/Ubuntu)):
@@ -64,9 +69,19 @@ sudo mv composer.phar /usr/local/bin/composer
 
 ```bash
 composer start
+# OR manually:
+php -S localhost:8080 -t public public/router.php
 ```
 
 The API will be available at `http://localhost:8080`
+
+### Access Swagger UI
+
+```bash
+http://localhost:8080/swagger
+```
+
+Interactive API documentation with "Try it out" functionality.
 
 ### Run tests
 
@@ -76,63 +91,98 @@ composer test
 
 ## API Endpoints
 
-### Health Check
-
-- `GET /health` - Check API status
-
 ### Authentication
 
-- All endpoints except `/health` require a Bearer token in `Authorization` header.
-- Tokens are stored in the `users.api_token` column. Seed data includes:
-  - alice → `token-alice-123`
-  - bob → `token-bob-456`
-  - charlie → `token-charlie-789`
-- Use HTTPS in production to protect tokens in transit.
+- `POST /auth/login` - Login with email/password, returns JWT token
+  ```json
+  {
+    "email": "alice@example.com",
+    "password": "password123"
+  }
+  ```
+
+### Users
+
+- `GET /users/me` (auth) - Get current user profile
 
 ### Groups
 
-- `POST /groups` (auth) — Create public/private groups (`is_private` boolean). Creator is stored as admin.
-- `POST /groups/{groupId}/join` (auth) — Join a group. For private groups, pass `invite_token` in the JSON body.
-- `POST /groups/{groupId}/invite` (auth, admin only) — Issue invite tokens for private access.
+- `GET /groups` (auth) - List accessible groups
+- `POST /groups` (auth) - Create new group (public/private)
+- `GET /groups/{groupId}` (auth) - Get group details with members
+- `POST /groups/{groupId}/join` (auth) - Join a group (requires invite_token for private groups)
+- `POST /groups/{groupId}/invite` (auth, admin only) - Generate invite token
 
 ### Messages
 
-- `POST /groups/{groupId}/messages` (auth, group member) — Send a message to the group.
-- `GET /groups/{groupId}/messages?page=1&page_size=20` (auth, group member) — Paginated message listing (page_size capped at 100). Poll periodically to fetch new messages.
+- `POST /groups/{groupId}/messages` (auth, member) - Send message to group
+- `GET /groups/{groupId}/messages` (auth, member) - List messages with pagination (page, page_size)
+
+### Health
+
+- `GET /health` - Service health check (no auth required)
+
+### Test Users
+
+All users have password: `password123`
+
+- alice@example.com
+- bob@example.com
+- charlie@example.com
+- david@example.com
+- emma@example.com
+
+### Authorization
+
+All protected endpoints require JWT Bearer token:
+
+```
+Authorization: Bearer <your-jwt-token>
+```
 
 ## Project Structure
 
 ```
 chat-gateway-php/
 ├── public/              # Web root
-│   └── index.php       # Application entry point
+│   ├── index.php       # Application entry point
+│   └── router.php      # PHP built-in server router
 ├── src/                # Application source code
 │   ├── Controllers/    # Request handlers
-│   │   └── HealthController.php
 │   ├── Middleware/     # HTTP middleware
-│   │   ├── AuthMiddleware.php
-│   │   ├── CorsMiddleware.php
-│   │   └── JsonBodyParserMiddleware.php
-│   ├── Models/         # Data models (to be added)
 │   ├── Services/       # Business logic
-│   │   └── Database.php
-│   └── Repositories/   # Data access layer (to be added)
+│   ├── Repositories/   # Data access layer
+│   ├── OpenAPI/        # API documentation
+│   │   └── OpenAPI.php
+│   ├── Utils/          # Utility classes
+│   │   └── Validator.php
+│   └── Exceptions/     # Custom exceptions
 ├── config/             # Configuration files
-├── database/           # Database files and migrations
-├── logs/               # Application logs
-├── tests/              # Test files
-└── .github/            # GitHub Actions workflows
+│   ├── container.php   # DI container
+│   ├── middleware.php  # Middleware stack
+│   └── routes.php      # Route definitions
+├── database/           # Database files
+│   ├── database.sqlite # SQLite database (UUID primary keys)
+│   ├── migrations/     # Phinx migrations
+│   └── seeds/          # Database seeders
+├── tests/              # PHPUnit tests
+│   ├── Unit/          # Unit tests
+│   └── Integration/   # Integration tests
+├── logs/              # Application logs
+└── vendor/            # Composer dependencies
 ```
 
-## Roadmap
+## Documentation
 
-- [x] Project setup and structure
-- [x] GitHub Actions CI/CD
-- [x] Database schema
-- [x] Authentication implementation
-- [ ] Group management
-- [ ] Messaging system
-- [ ] API documentation (OpenAPI/Swagger)
-- [ ] Comprehensive test coverage
-- [ ] Docker support
-- [ ] WebSocket support for real-time messaging
+- **[QUICKSTART.md](QUICKSTART.md)** - Get started in 4 steps
+- **[SWAGGER.md](SWAGGER.md)** - Swagger UI guide
+- **OpenAPI Spec** - `http://localhost:8080/swagger.json`
+
+## Technical Details
+
+- **Database**: SQLite with UUID primary keys (not auto-increment integers)
+- **Authentication**: JWT with Firebase PHP-JWT library
+- **Framework**: Slim 4 with PSR-7/PSR-15 middleware
+- **Migrations**: Phinx for schema management
+- **Testing**: PHPUnit with integration tests
+- **API Docs**: OpenAPI 3.0 with Swagger UI

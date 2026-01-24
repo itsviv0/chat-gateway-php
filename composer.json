@@ -37,7 +37,7 @@
         "phpcs": "phpcs --standard=PSR12 src",
         "phpcbf": "phpcbf --standard=PSR12 src",
         "migrate": "vendor/bin/phinx migrate",
-        "start": "php -S localhost:8080 -t public"
+        "start": "php -S localhost:8080 -t public/router.php"
     },
     "config": {
         "optimize-autoloader": true,

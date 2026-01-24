@@ -17,14 +17,8 @@
  *     ),
  *     servers={
  *         @OA\Server(
- *             url="http://localhost:8080/api",
- *             description="Local development server",
- *             variables={
- *                 @OA\ServerVariable(
- *                     serverVariable="basePath",
- *                     default="/api"
- *                 )
- *             }
+ *             url="http://localhost:8080",
+ *             description="Local development server"
  *         )
  *     }
  * )
