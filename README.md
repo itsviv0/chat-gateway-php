@@ -178,11 +178,4 @@ chat-gateway-php/
 - **[SWAGGER.md](SWAGGER.md)** - Swagger UI guide
 - **OpenAPI Spec** - `http://localhost:8080/swagger.json`
 
-## Technical Details
-
-- **Database**: SQLite with UUID primary keys (not auto-increment integers)
-- **Authentication**: JWT with Firebase PHP-JWT library
-- **Framework**: Slim 4 with PSR-7/PSR-15 middleware
-- **Migrations**: Phinx for schema management
-- **Testing**: PHPUnit with integration tests
-- **API Docs**: OpenAPI 3.0 with Swagger UI
+[Screencast from 24-01-26 01:08:25 PM IST.webm](https://github.com/user-attachments/assets/11dd04e4-4ead-4e98-82fa-5c32e4b29a0c)
